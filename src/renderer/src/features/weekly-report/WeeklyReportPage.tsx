@@ -8,7 +8,6 @@ import {
   Empty,
   Input,
   Segmented,
-  Select,
   Space,
   Spin,
   Tabs,
@@ -20,12 +19,20 @@ import dayjs, { type Dayjs } from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
 import { useTranslation } from 'react-i18next'
 import { buildCommitsWeeklyReportMarkdown } from '@shared/markdown'
-import type { CommitItem, TimeRangePreset, TimeRangeState } from '@shared/models'
+import {
+  authorKey,
+  defaultSelectedAuthorKeys,
+  type AuthorIdentity,
+  type CommitItem,
+  type TimeRangePreset,
+  type TimeRangeState
+} from '@shared/models'
 import { customDayBounds, localDateKey } from '@shared/time-range'
 import { useWeeklyActivity, useWorkbench } from '@renderer/hooks/useWorkbench'
 import { WeeklyChangesFeed } from './WeeklyChangesFeed'
 import { StatsHeader } from '../this-week/StatsHeader'
 import { MarkdownReportPreview } from '../this-week/MarkdownReportPreview'
+import { ClosingMultiSelect } from '@renderer/components/ClosingMultiSelect'
 
 dayjs.extend(isoWeek)
 
@@ -41,7 +48,7 @@ export function WeeklyReportPage({
   const { state: workbench } = useWorkbench()
 
   const [timeRange, setTimeRange] = useState<TimeRangeState>({ preset: 'thisWeek' })
-  const [selectedAuthors, setSelectedAuthors] = useState<string[]>([])
+  const [selectedAuthors, setSelectedAuthors] = useState<string[] | null>(null)
   const [searchKeyword, setSearchKeyword] = useState<string>('')
   const [activeTabKey, setActiveTabKey] = useState<'report' | 'changes'>('report')
 
@@ -59,23 +66,38 @@ export function WeeklyReportPage({
       ? [dayjs(timeRange.customStart), dayjs(timeRange.customEnd)]
       : null
 
-  const authorOptions = useMemo(() => {
+  const availableAuthors = useMemo((): AuthorIdentity[] => {
     const allCommits = activityData?.allCommits ?? []
-    const authorSet = new Set<string>()
+    const authors = new Map<string, AuthorIdentity>()
     for (const c of allCommits) {
-      if (c.authorName) {
-        authorSet.add(c.authorName)
-      }
+      const author = { name: c.authorName, email: c.authorEmail }
+      if (author.name) authors.set(authorKey(author), author)
     }
-    return Array.from(authorSet)
-      .sort()
-      .map((name) => ({ label: name, value: name }))
+    return Array.from(authors.values()).sort((a, b) => a.name.localeCompare(b.name))
   }, [activityData?.allCommits])
+
+  const authorOptions = useMemo(
+    () =>
+      availableAuthors.map((author) => ({
+        label: author.email ? `${author.name} <${author.email}>` : author.name,
+        value: authorKey(author)
+      })),
+    [availableAuthors]
+  )
+
+  const effectiveSelectedAuthors = useMemo(
+    () =>
+      selectedAuthors ?? defaultSelectedAuthorKeys(availableAuthors, workbench?.myIdentities ?? []),
+    [availableAuthors, selectedAuthors, workbench?.myIdentities]
+  )
 
   const filteredCommits = useMemo((): CommitItem[] => {
     const allCommits = activityData?.allCommits ?? []
     return allCommits.filter((c) => {
-      if (selectedAuthors.length > 0 && !selectedAuthors.includes(c.authorName)) {
+      if (
+        effectiveSelectedAuthors.length > 0 &&
+        !effectiveSelectedAuthors.includes(authorKey({ name: c.authorName, email: c.authorEmail }))
+      ) {
         return false
       }
       if (!searchKeyword.trim()) return true
@@ -86,7 +108,7 @@ export function WeeklyReportPage({
         (c.repoName && c.repoName.toLowerCase().includes(kw))
       )
     })
-  }, [activityData?.allCommits, selectedAuthors, searchKeyword])
+  }, [activityData?.allCommits, effectiveSelectedAuthors, searchKeyword])
 
   const enabledRepos = useMemo(
     () => (workbench?.repositories ?? []).filter((r) => r.enabledForReport),
@@ -148,17 +170,24 @@ export function WeeklyReportPage({
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[var(--ant-color-bg-layout)]">
       {/* 顶部工具栏 */}
-      <div className="flex flex-col gap-3 border-b border-[var(--ant-color-border-secondary)] bg-[var(--ant-color-bg-container)] px-6 py-3.5 shrink-0">
+      <div className="flex shrink-0 flex-col gap-3 border-b border-[var(--ant-color-border-secondary)] bg-[var(--ant-color-bg-container)] px-6 py-3.5">
         {/* 第一行：视图标题与主动作 */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex min-h-[32px] items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
-            <FileText size={18} className="text-[var(--ant-color-primary)]" />
+            <FileText size={18} className="text-[var(--ant-color-primary)] shrink-0" />
             <span className="text-base font-semibold text-[var(--ant-color-text)]">
               {t('nav.weeklyReport', { defaultValue: '全仓周报整理' })}
             </span>
-            <Tag color="blue" bordered={false} className="m-0 font-mono text-xs">
-              {enabledRepos.length} {t('stats.activeRepos', { defaultValue: '个工程' })}
-            </Tag>
+            <Tooltip
+              title={t('weeklyReport.activeRepoCountTooltip', {
+                count: enabledRepos.length,
+                defaultValue: `当前有 ${enabledRepos.length} 个工程参与周报`
+              })}
+            >
+              <Tag color="blue" bordered={false} className="m-0 cursor-default font-mono text-xs">
+                {enabledRepos.length} {t('stats.activeRepos', { defaultValue: '个工程' })}
+              </Tag>
+            </Tooltip>
           </div>
 
           <div className="flex items-center gap-2">
@@ -215,18 +244,17 @@ export function WeeklyReportPage({
           </div>
 
           <div className="flex items-center gap-3">
-            {authorOptions.length > 0 && (
-              <Select
-                mode="multiple"
-                allowClear
-                maxTagCount="responsive"
-                className="min-w-36 max-w-56"
-                placeholder={t('filterBar.filterAuthors', { defaultValue: '全部作者' })}
-                value={selectedAuthors}
-                options={authorOptions}
-                onChange={setSelectedAuthors}
-              />
-            )}
+            <ClosingMultiSelect
+              allowClear
+              maxTagCount="responsive"
+              className="min-w-36 max-w-56"
+              placeholder={t('filterBar.filterAuthors', { defaultValue: '全部作者' })}
+              value={effectiveSelectedAuthors}
+              options={authorOptions}
+              onChange={setSelectedAuthors}
+              loading={isLoading}
+              notFoundContent={t('filterBar.noAuthors', { defaultValue: '当前范围暂无作者' })}
+            />
 
             <Input
               placeholder={t('thisWeek.searchPlaceholder', { defaultValue: '搜索提交信息…' })}
@@ -316,6 +344,7 @@ export function WeeklyReportPage({
                         <div className="min-h-[360px] rounded border border-[var(--ant-color-border-secondary)] bg-[var(--ant-color-bg-container)]">
                           <MarkdownReportPreview
                             markdown={markdownText}
+                            commits={filteredCommits}
                             emptyDescription={t('weeklyReport.emptyMarkdown', {
                               defaultValue: '暂无周报内容'
                             })}
@@ -330,9 +359,16 @@ export function WeeklyReportPage({
                       <span className="flex items-center gap-1.5 font-medium">
                         <GitCommit size={15} />
                         {t('thisWeek.tabChanges', { defaultValue: '相关修改' })}
-                        <Tag className="ml-1 text-xs font-mono" bordered={false}>
-                          {filteredCommits.length}
-                        </Tag>
+                        <Tooltip
+                          title={t('weeklyReport.commitCountTooltip', {
+                            count: filteredCommits.length,
+                            defaultValue: `当前筛选范围内共 ${filteredCommits.length} 次提交`
+                          })}
+                        >
+                          <Tag className="ml-1 cursor-default text-xs font-mono" bordered={false}>
+                            {filteredCommits.length}
+                          </Tag>
+                        </Tooltip>
                       </span>
                     ),
                     children: (

@@ -74,12 +74,14 @@ export function SettingsPage(): React.JSX.Element {
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[var(--ant-color-bg-layout)]">
-      {/* 顶部标题区 */}
-      <div className="flex items-center gap-2.5 border-b border-[var(--ant-color-border-secondary)] bg-[var(--ant-color-bg-container)] px-6 py-4 shrink-0">
-        <Settings size={18} className="text-[var(--ant-color-primary)]" />
-        <span className="text-base font-semibold text-[var(--ant-color-text)]">
-          {t('nav.settings', { defaultValue: '应用设置' })}
-        </span>
+      {/* 顶部统一 Header */}
+      <div className="flex min-h-[60px] shrink-0 items-center justify-between gap-4 border-b border-[var(--ant-color-border-secondary)] bg-[var(--ant-color-bg-container)] px-6 py-3.5">
+        <div className="flex items-center gap-2.5">
+          <Settings size={18} className="text-[var(--ant-color-primary)] shrink-0" />
+          <span className="text-base font-semibold text-[var(--ant-color-text)]">
+            {t('nav.settings', { defaultValue: '设置' })}
+          </span>
+        </div>
       </div>
 
       {/* 主体 Tabs 内容区 */}

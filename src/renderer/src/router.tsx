@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import {
   Outlet,
   RouterProvider,
@@ -10,7 +11,7 @@ import {
   useNavigate,
   useParams
 } from '@tanstack/react-router'
-import { App, Button, Dropdown, Layout, Menu, Tooltip, Typography } from 'antd'
+import { App, Button, Dropdown, Layout, Menu, Tag, Tooltip, Typography } from 'antd'
 import type { MenuProps } from 'antd'
 import {
   FileText,
@@ -44,6 +45,11 @@ function RootLayout(): React.JSX.Element {
   const isMac = window.api.platform === 'darwin'
 
   const [editingRepo, setEditingRepo] = useState<RepositoryRecord | null>(null)
+  const versionQuery = useQuery({
+    queryKey: ['app-version'],
+    queryFn: () => window.api.getAppVersion(),
+    staleTime: Infinity
+  })
 
   const repositories = workbench?.repositories ?? []
 
@@ -165,114 +171,119 @@ function RootLayout(): React.JSX.Element {
   ]
 
   return (
-    <Layout className="h-screen w-screen overflow-hidden bg-[var(--ant-color-bg-layout)] flex flex-row">
-      {/* 经典左侧侧边栏 */}
-      <Sider
-        width={230}
-        trigger={null}
-        theme={isDark ? 'dark' : 'light'}
-        style={{ background: 'var(--ant-color-bg-container)' }}
-        className="!border-r !border-[var(--ant-color-border-secondary)] flex flex-col justify-between select-none h-full shrink-0"
+    <Layout className="h-screen w-screen overflow-hidden bg-[var(--ant-color-bg-layout)] flex flex-col">
+      <header
+        className="app-drag z-20 flex h-14 shrink-0 items-center border-b border-[var(--ant-color-border-secondary)] bg-[var(--ant-color-bg-container)]"
+        style={{
+          paddingLeft: isMac ? '100px' : '16px',
+          paddingRight: isMac
+            ? '16px'
+            : 'calc(100vw - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100vw) + 12px)'
+        }}
       >
-        <div className="flex flex-col h-full justify-between">
-          {/* 顶部区域：Logo + 主导航 + 本地工程列表 */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden">
-            {/* 顶部 Logo 与拖拽区 */}
-            <div
-              className={`flex items-center gap-2.5 px-4 pb-3 ${isMac ? 'pt-8' : 'pt-4'}`}
-              style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-[var(--ant-color-primary)] text-sm font-bold text-white shadow-xs">
+            GF
+          </div>
+          <Typography.Text strong className="text-base tracking-tight">
+            GitFeed
+          </Typography.Text>
+          <Tooltip title={t('settings.appVersion', { defaultValue: '当前版本' })}>
+            <Tag
+              bordered={false}
+              color="blue"
+              className="m-0 min-w-12 text-center font-mono text-[10px] leading-5"
             >
-              <div
-                className="flex h-7 w-7 items-center justify-center rounded-md bg-[var(--ant-color-primary)] text-white font-bold text-sm shadow-xs select-none"
-                style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-              >
-                GF
-              </div>
-              <div
-                className="flex flex-col select-none"
-                style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
-              >
-                <Typography.Text strong className="text-base tracking-tight leading-tight">
-                  GitFeed
-                </Typography.Text>
-                <span className="text-[10px] text-[var(--ant-color-text-quaternary)] tracking-wide font-sans">
-                  WEEKLY REPORT
-                </span>
-              </div>
-            </div>
+              v{versionQuery.data ?? '—'}
+            </Tag>
+          </Tooltip>
+        </div>
+      </header>
 
-            {/* 主入口菜单（项目概览 / 全仓周报整理） */}
-            <div className="px-2 pt-1">
-              <Menu
-                mode="inline"
-                selectedKeys={[selectedMenuKey]}
-                items={topMenuItems}
-                onClick={({ key }) => {
-                  if (key === 'welcome') void navigate({ to: '/' })
-                  else if (key === 'weekly-report') void navigate({ to: '/weekly-report' })
-                }}
-                className="!border-r-0 font-medium"
-              />
-            </div>
-
-            {/* 本地工程列表小标题 */}
-            <div className="px-4 pt-5 pb-1 flex items-center justify-between">
-              <span className="text-[11px] font-semibold tracking-wider text-[var(--ant-color-text-tertiary)] uppercase">
-                {t('sidebar.title', { defaultValue: '本地工程' })}
-              </span>
-              <Tooltip title={t('sidebar.addBtn', { defaultValue: '添加工程' })}>
-                <Button
-                  type="text"
-                  size="small"
-                  icon={<Plus size={13} />}
-                  loading={adding}
-                  onClick={addRepository}
-                  className="!h-5 !w-5 text-[var(--ant-color-text-tertiary)] hover:text-[var(--ant-color-primary)] p-0"
-                />
-              </Tooltip>
-            </div>
-
-            {/* 本地工程菜单 */}
-            <div className="px-2">
-              {repositories.length === 0 ? (
-                <div
-                  className="px-3 py-2 text-xs text-[var(--ant-color-text-quaternary)] cursor-pointer hover:text-[var(--ant-color-primary)] transition-colors"
-                  onClick={addRepository}
-                >
-                  {t('welcome.clickToAddRepo', { defaultValue: '+ 点击添加本地工程' })}
-                </div>
-              ) : (
+      <Layout className="min-h-0 flex-1 flex-row overflow-hidden">
+        {/* 经典左侧侧边栏 */}
+        <Sider
+          width={230}
+          trigger={null}
+          theme={isDark ? 'dark' : 'light'}
+          style={{ background: 'var(--ant-color-bg-container)' }}
+          className="!border-r !border-[var(--ant-color-border-secondary)] flex h-full shrink-0 flex-col justify-between select-none"
+        >
+          <div className="flex h-full flex-col justify-between">
+            {/* 顶部区域：主导航 + 本地工程列表 */}
+            <div className="flex-1 overflow-y-auto overflow-x-hidden pt-3">
+              {/* 主入口菜单（项目概览 / 全仓周报整理） */}
+              <div className="px-2 pt-1">
                 <Menu
                   mode="inline"
                   selectedKeys={[selectedMenuKey]}
-                  items={repoMenuItems}
+                  items={topMenuItems}
                   onClick={({ key }) => {
-                    const repoId = String(key).replace('repo-', '')
-                    void navigate({ to: '/project/$repoId', params: { repoId } })
+                    if (key === 'welcome') void navigate({ to: '/' })
+                    else if (key === 'weekly-report') void navigate({ to: '/weekly-report' })
                   }}
                   className="!border-r-0 font-medium"
                 />
-              )}
+              </div>
+
+              {/* 本地工程列表小标题 */}
+              <div className="flex items-center justify-between px-4 pb-1 pt-5">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--ant-color-text-tertiary)]">
+                  {t('sidebar.title', { defaultValue: '本地工程' })}
+                </span>
+                <Tooltip title={t('sidebar.addBtn', { defaultValue: '添加工程' })}>
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<Plus size={13} />}
+                    loading={adding}
+                    onClick={addRepository}
+                    className="!h-5 !w-5 p-0 text-[var(--ant-color-text-tertiary)] hover:text-[var(--ant-color-primary)]"
+                  />
+                </Tooltip>
+              </div>
+
+              {/* 本地工程菜单 */}
+              <div className="px-2">
+                {repositories.length === 0 ? (
+                  <div
+                    className="cursor-pointer px-3 py-2 text-xs text-[var(--ant-color-text-quaternary)] transition-colors hover:text-[var(--ant-color-primary)]"
+                    onClick={addRepository}
+                  >
+                    {t('welcome.clickToAddRepo', { defaultValue: '+ 点击添加本地工程' })}
+                  </div>
+                ) : (
+                  <Menu
+                    mode="inline"
+                    selectedKeys={[selectedMenuKey]}
+                    items={repoMenuItems}
+                    onClick={({ key }) => {
+                      const repoId = String(key).replace('repo-', '')
+                      void navigate({ to: '/project/$repoId', params: { repoId } })
+                    }}
+                    className="!border-r-0 font-medium"
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* 左下角设置入口 */}
+            <div className="shrink-0 border-t border-[var(--ant-color-border-secondary)] p-2">
+              <Menu
+                mode="inline"
+                selectedKeys={[selectedMenuKey === 'settings' ? 'settings' : '']}
+                items={settingsMenuItems}
+                onClick={() => void navigate({ to: '/settings' })}
+                className="!border-r-0 font-medium"
+              />
             </div>
           </div>
+        </Sider>
 
-          {/* 左下角设置入口 */}
-          <div className="border-t border-[var(--ant-color-border-secondary)] p-2 shrink-0">
-            <Menu
-              mode="inline"
-              selectedKeys={[selectedMenuKey === 'settings' ? 'settings' : '']}
-              items={settingsMenuItems}
-              onClick={() => void navigate({ to: '/settings' })}
-              className="!border-r-0 font-medium"
-            />
-          </div>
-        </div>
-      </Sider>
-
-      {/* 右侧主工作区：通过 TanStack Router Outlet 挂载 */}
-      <Content className="min-w-0 flex-1 overflow-hidden h-full">
-        <Outlet />
-      </Content>
+        <Content className="min-w-0 h-full flex-1 overflow-hidden">
+          <Outlet />
+        </Content>
+      </Layout>
 
       {/* 本地工程编辑配置弹窗 */}
       <EditRepoModal
@@ -315,7 +326,6 @@ const projectRoute = createRoute({
       <ThisWeekPage
         key={repoId}
         selectedRepoId={repoId}
-        onBackToOverview={() => void navigate({ to: '/' })}
         onNavigateToSettings={() => void navigate({ to: '/settings' })}
       />
     )
