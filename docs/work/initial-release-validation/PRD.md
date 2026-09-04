@@ -41,3 +41,4 @@
 8. macOS 发行包保持无 Developer ID 签名和无 Apple 公证，README 提供可操作的首次打开说明。
 9. Windows 使用引导式安装程序，普通用户可以选择当前用户范围和安装目录，无需自动提权。
 10. 质量检查和三平台打包任务均依据 `pnpm-lock.yaml` 恢复和保存 pnpm store 缓存。
+11. electron-builder 构建阶段不隐式发布；Release 资产只由独立上传步骤写入 GitHub Release。

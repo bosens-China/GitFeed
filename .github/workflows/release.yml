@@ -64,19 +64,19 @@ jobs:
         include:
           - platform: macOS
             os: macos-latest
-            command: pnpm run build && pnpm exec electron-builder --mac --arm64
+            command: pnpm run build && pnpm exec electron-builder --mac --arm64 --publish never
             artifacts: dist/*.dmg dist/*.zip
             artifact_paths: |-
               dist/*.dmg
               dist/*.zip
           - platform: Windows
             os: windows-latest
-            command: pnpm run build && pnpm exec electron-builder --win --x64
+            command: pnpm run build && pnpm exec electron-builder --win --x64 --publish never
             artifacts: dist/*.exe
             artifact_paths: dist/*.exe
           - platform: Linux
             os: ubuntu-latest
-            command: pnpm run build && pnpm exec electron-builder --linux --x64
+            command: pnpm run build && pnpm exec electron-builder --linux --x64 --publish never
             artifacts: dist/*.AppImage dist/*.deb
             artifact_paths: |-
               dist/*.AppImage

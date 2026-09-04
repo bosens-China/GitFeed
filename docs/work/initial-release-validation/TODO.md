@@ -5,6 +5,7 @@
 - [x] 配置自动化质量检查、Release Please 和三平台发行打包。
 - [x] 配置质量检查与三平台打包任务的 pnpm store 缓存。
 - [x] 将 Windows 改为可选择安装目录的引导式当前用户安装程序。
+- [x] 禁用 electron-builder 的 CI 隐式发布，由独立步骤统一上传 Release 资产。
 - [x] 验证 macOS arm64 无签名 DMG/ZIP 构建，并补充 Gatekeeper 使用说明。
 - [ ] 在 GitHub Actions 中手动触发一次三平台打包，确认产物上传完整。
 - [ ] 验证无 commit 仓库、同名仓库和不可访问路径。
