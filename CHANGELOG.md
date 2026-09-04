@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/bosens-China/GitFeed/compare/v1.0.0...v1.1.0) (2026-09-04)
+
+
+### Features
+
+* 更新应用图标 ([1f8e103](https://github.com/bosens-China/GitFeed/commit/1f8e103464b23a4dcf646e9756df8c0e95abdcc0))
+
 ## 1.0.0 (2026-09-04)
 
 
