@@ -28,13 +28,13 @@ function createWindow(): void {
     titleBarStyle: 'hidden',
     ...(process.platform === 'darwin'
       ? {
-          trafficLightPosition: { x: 16, y: 16 }
+          trafficLightPosition: { x: 16, y: 20 }
         }
       : {
           titleBarOverlay: {
             color: '#00000000',
             symbolColor: '#888888',
-            height: 36
+            height: 56
           }
         }),
     ...(process.platform === 'linux' ? { icon } : {}),

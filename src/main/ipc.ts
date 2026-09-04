@@ -4,12 +4,14 @@ import {
   createDefaultFilters,
   type AuthorIdentity,
   type MultiRepoWeeklyQueryResult,
+  type ProjectViewMemory,
   type RepositoryBranchOverride,
   type RepositoryUpdate,
   type TimeRangePreset,
   type TimeRangeState,
   type WorkbenchState
 } from '@shared/models'
+import { getCommitDiff } from './git/commits'
 import {
   diagnoseRepository,
   discoverRepoAuthors,
@@ -26,6 +28,7 @@ import {
   setActiveRepository,
   updateIncludeMergeDefault,
   updateMyIdentities,
+  updateProjectViewMemory,
   updateRepositoryRecord
 } from './store/workbench'
 
@@ -144,6 +147,48 @@ function parseBranchOverride(value: unknown): RepositoryBranchOverride | undefin
   }
 }
 
+function parseProjectViewMemory(value: unknown): ProjectViewMemory {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('项目视图状态无效')
+  }
+  const input = value as Record<string, unknown>
+  const selectedAuthorKeys = input.selectedAuthorKeys
+  if (
+    !Array.isArray(selectedAuthorKeys) ||
+    selectedAuthorKeys.length > 100 ||
+    !selectedAuthorKeys.every((key) => typeof key === 'string' && key.length <= 600)
+  ) {
+    throw new Error('作者筛选状态无效')
+  }
+  if (input.activeTabKey !== 'report' && input.activeTabKey !== 'changes') {
+    throw new Error('项目页签状态无效')
+  }
+  if (typeof input.searchKeyword !== 'string' || input.searchKeyword.length > 1000) {
+    throw new Error('搜索状态无效')
+  }
+  if (
+    input.analysisBranch !== null &&
+    (typeof input.analysisBranch !== 'string' || input.analysisBranch.length > 255)
+  ) {
+    throw new Error('分析分支状态无效')
+  }
+  return {
+    timeRange: parseTimeRange(input.timeRange),
+    selectedAuthorKeys: [...new Set(selectedAuthorKeys)],
+    searchKeyword: input.searchKeyword,
+    activeTabKey: input.activeTabKey,
+    analysisBranch: input.analysisBranch
+  }
+}
+
+function parseCommitHash(value: unknown): string {
+  const hash = parseString(value, '提交 Hash', 64).trim()
+  if (!/^(?:[0-9a-f]{40}|[0-9a-f]{64})$/iu.test(hash)) {
+    throw new Error('提交 Hash 无效')
+  }
+  return hash
+}
+
 export function registerIpcHandlers(): void {
   registerHandler(IpcChannels.workbenchGet, async (): Promise<WorkbenchState> => {
     return readWorkbenchState()
@@ -213,6 +258,13 @@ export function registerIpcHandlers(): void {
   )
 
   registerHandler(
+    IpcChannels.workbenchUpdateProjectView,
+    async (id: unknown, memory: unknown): Promise<WorkbenchState> => {
+      return updateProjectViewMemory(parseString(id, '工程标识'), parseProjectViewMemory(memory))
+    }
+  )
+
+  registerHandler(
     IpcChannels.workbenchUpdateIdentities,
     async (identities: unknown): Promise<WorkbenchState> => {
       return updateMyIdentities(parseIdentities(identities))
@@ -267,6 +319,18 @@ export function registerIpcHandlers(): void {
   })
 
   registerHandler(
+    IpcChannels.repositoryCommitDiff,
+    async (id: unknown, hash: unknown): Promise<{ patch: string }> => {
+      const parsedId = parseString(id, '工程标识')
+      const parsedHash = parseCommitHash(hash)
+      const state = await readWorkbenchState()
+      const repo = state.repositories.find((item) => item.id === parsedId)
+      if (!repo) throw new Error('仓库不存在')
+      return { patch: await getCommitDiff(repo.path, parsedHash) }
+    }
+  )
+
+  registerHandler(
     IpcChannels.weeklyQueryActivity,
     async (
       timeRangeState: unknown,
@@ -295,6 +359,10 @@ export function registerIpcHandlers(): void {
       })
     }
   )
+
+  registerHandler(IpcChannels.appGetVersion, (): string => {
+    return app.getVersion()
+  })
 
   registerHandler(
     IpcChannels.appGetGitStatus,

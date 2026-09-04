@@ -84,6 +84,33 @@ export async function listCommitsInRange(options: {
   return commits
 }
 
+export async function getCommitDiff(repoPath: string, hash: string): Promise<string> {
+  const baseArgs = [
+    '-c',
+    'core.quotepath=false',
+    'show',
+    '--format=',
+    '--no-color',
+    '--no-ext-diff',
+    '--unified=3',
+    '--root',
+    '-M'
+  ]
+
+  try {
+    const { stdout } = await runGit(repoPath, [
+      ...baseArgs,
+      '--diff-merges=first-parent',
+      hash,
+      '--'
+    ])
+    return stdout
+  } catch {
+    const { stdout } = await runGit(repoPath, [...baseArgs, hash, '--'])
+    return stdout
+  }
+}
+
 function parseCommitLog(stdout: string): RawCommit[] {
   if (!stdout.trim()) {
     return []

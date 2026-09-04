@@ -22,6 +22,17 @@ export interface RepositoryFilters {
   includeMerge: boolean
 }
 
+export type ProjectViewTab = 'report' | 'changes'
+
+/** 单工程分析页中需要跨会话恢复的稳定视图状态。 */
+export interface ProjectViewMemory {
+  timeRange: TimeRangeState
+  selectedAuthorKeys: string[]
+  searchKeyword: string
+  activeTabKey: ProjectViewTab
+  analysisBranch: string | null
+}
+
 export type RepositoryStatus = 'available' | 'empty' | 'missing' | 'not_git' | 'error'
 
 export interface RepositoryRecord {
@@ -37,6 +48,7 @@ export interface RepositoryRecord {
   lastCheckedAt?: string
   errorMessage?: string
   filters: RepositoryFilters
+  viewMemory?: ProjectViewMemory
 }
 
 /** 仅用于当前查询的临时分支，不会写入工程配置。 */
@@ -50,11 +62,15 @@ export type RepositoryUpdate = Partial<
 >
 
 export interface WorkbenchState {
-  version: 2
+  version: 3
   repositories: RepositoryRecord[]
   activeRepositoryId: string | null
   myIdentities: AuthorIdentity[]
   includeMergeDefault: boolean
+}
+
+export interface CommitDiffResult {
+  patch: string
 }
 
 export type FileChangeStatus = 'A' | 'M' | 'D' | 'R' | 'C' | 'T' | 'U' | '?'
@@ -180,4 +196,15 @@ export function matchesIdentity(author: AuthorIdentity, identity: AuthorIdentity
 export function matchesAnyIdentity(author: AuthorIdentity, identities: AuthorIdentity[]): boolean {
   if (identities.length === 0) return true
   return identities.some((identity) => matchesIdentity(author, identity))
+}
+
+/** 空数组在作者筛选中表示“全部”，也用于没有全局身份或没有可匹配作者时的回退。 */
+export function defaultSelectedAuthorKeys(
+  availableAuthors: AuthorIdentity[],
+  globalIdentities: AuthorIdentity[]
+): string[] {
+  if (globalIdentities.length === 0) return []
+  return availableAuthors
+    .filter((author) => matchesAnyIdentity(author, globalIdentities))
+    .map(authorKey)
 }

@@ -4,6 +4,7 @@ import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { execa } from 'execa'
 import { queryMultiRepoCommits, queryRepository } from '../src/main/git/query'
+import { getCommitDiff } from '../src/main/git/commits'
 import { createDefaultFilters, type RepositoryRecord } from '../src/shared/models'
 
 const temporaryDirectories: string[] = []
@@ -22,6 +23,30 @@ afterEach(async () => {
 })
 
 describe('queryRepository with a real Git repository', () => {
+  it('reads a commit diff without changing repository state', async () => {
+    const repoPath = await fs.mkdtemp(path.join(os.tmpdir(), 'gitfeed-diff-'))
+    temporaryDirectories.push(repoPath)
+    await git(repoPath, ['init', '-q'])
+    await git(repoPath, ['config', 'user.name', 'Reviewer'])
+    await git(repoPath, ['config', 'user.email', 'reviewer@example.com'])
+    await fs.writeFile(path.join(repoPath, 'review.txt'), 'before\n', 'utf8')
+    await git(repoPath, ['add', 'review.txt'])
+    await git(repoPath, ['commit', '-q', '-m', 'before'])
+    await fs.writeFile(path.join(repoPath, 'review.txt'), 'after\n', 'utf8')
+    await git(repoPath, ['commit', '-qam', 'after'])
+
+    const hash = (await git(repoPath, ['rev-parse', 'HEAD'])).trim()
+    const headBefore = (await git(repoPath, ['rev-parse', 'HEAD'])).trim()
+    const statusBefore = await git(repoPath, ['status', '--porcelain'])
+    const patch = await getCommitDiff(repoPath, hash)
+
+    expect(patch).toContain('diff --git a/review.txt b/review.txt')
+    expect(patch).toContain('-before')
+    expect(patch).toContain('+after')
+    expect((await git(repoPath, ['rev-parse', 'HEAD'])).trim()).toBe(headBefore)
+    expect(await git(repoPath, ['status', '--porcelain'])).toBe(statusBefore)
+  })
+
   it('loads first-view commits and authors by author date with real line stats', async () => {
     const repoPath = await fs.mkdtemp(path.join(os.tmpdir(), 'gitfeed-query-'))
     temporaryDirectories.push(repoPath)

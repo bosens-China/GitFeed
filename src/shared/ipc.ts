@@ -4,12 +4,15 @@ export const IpcChannels = {
   workbenchRemove: 'workbench:remove',
   workbenchSetActive: 'workbench:setActive',
   workbenchUpdateRepo: 'workbench:updateRepo',
+  workbenchUpdateProjectView: 'workbench:updateProjectView',
   workbenchUpdateIdentities: 'workbench:updateIdentities',
   workbenchUpdatePreferences: 'workbench:updatePreferences',
   workbenchDiscoverAuthors: 'workbench:discoverAuthors',
   repositoryQuery: 'repository:query',
   repositoryCheckStatus: 'repository:checkStatus',
+  repositoryCommitDiff: 'repository:commitDiff',
   weeklyQueryActivity: 'weekly:queryActivity',
+  appGetVersion: 'app:getVersion',
   appGetGitStatus: 'app:getGitStatus',
   appCheckForUpdates: 'app:checkForUpdates'
 } as const
