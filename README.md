@@ -17,12 +17,12 @@ GitFeed 是一款跨平台、本地优先的个人 Git 周报桌面工具。它�
 
 ## 下载使用
 
-前往 [Releases](https://github.com/bosens-China/GitFeed/releases) 下载适用于 macOS、Windows 或 Linux 的安装包。
+前往 [Releases](https://github.com/bosens-China/GitFeed/releases) 下载适用于 macOS、Windows 或 Linux 的程序包。
 
-当前发布以个人开源免费工具为定位，只提供主流桌面平台的安装包：
+当前发布以个人开源免费工具为定位，只提供主流桌面平台的程序包：
 
 - macOS 提供 Apple 芯片（M 系列，arm64）的 DMG 与 ZIP。
-- Windows 提供 x64 引导式安装程序，默认按当前用户安装，并允许选择安装目录。
+- Windows 提供 x64 安装程序和免安装 ZIP。免安装版完整解压后运行 `GitFeed/gitfeed.exe`。
 - Linux 提供 x64 AppImage 和 DEB。
 
 GitFeed 使用当前登录用户的权限运行，不需要超级管理员或管理员权限，也不会申请提权、修改文件权限或绕过系统访问控制。某个本地仓库能否被选择和读取，由操作系统及当前用户本身的权限决定。Linux 普通用户可以直接运行 AppImage；DEB 是否需要管理员权限仅取决于系统的软件包安装策略。

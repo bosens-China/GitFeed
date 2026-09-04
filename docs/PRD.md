@@ -103,10 +103,10 @@ GitFeed 是一款跨平台、本地优先的个人 Git 周报工具。它从多�
 
 ## 分发与安装
 
-- 官方安装包通过 GitHub Releases 免费发布。
-- 只维护主流桌面平台的安装包：macOS 提供 Apple 芯片（M 系列，arm64）的 DMG 与 ZIP；Windows 提供 x64 安装程序；Linux 提供 x64 AppImage 和 DEB。
-- Windows 安装程序使用引导式流程，默认按当前用户安装，允许用户选择安装目录，普通用户流程不自动请求提权。
-- macOS 安装包不使用 Apple Developer ID 证书，也不进行 Apple 公证。README 必须说明 Gatekeeper 的首次打开步骤。
+- 官方程序包通过 GitHub Releases 免费发布。
+- 只维护主流桌面平台的程序包：macOS 提供 Apple 芯片（M 系列，arm64）的 DMG 与 ZIP；Windows 提供 x64 安装程序与免安装 ZIP；Linux 提供 x64 AppImage 和 DEB。
+- Windows 安装程序使用引导式流程，默认按当前用户安装，允许用户选择安装目录，普通用户流程不自动请求提权；免安装 ZIP 完整解压后即可运行。
+- macOS 程序包不使用 Apple Developer ID 证书，也不进行 Apple 公证。README 必须说明 Gatekeeper 的首次打开步骤。
 - 自动发布前必须通过测试、类型检查和代码规范检查。CI 安装依赖时使用由 `pnpm-lock.yaml` 驱动的 pnpm store 缓存；可以手动触发三平台打包验证，但不创建 GitHub Release。
 
 ## 安全与异常要求

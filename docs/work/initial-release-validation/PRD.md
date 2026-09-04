@@ -5,7 +5,7 @@
 
 ## 背景与目标
 
-当前产品已配置自动化质量检查、Release Please 和三平台打包。macOS 无签名发行包已完成构建验证，但异常仓库、大提交历史、系统缺少 Git 以及三平台核心流程尚未完成手工验证。
+当前产品已配置自动化质量检查、Release Please 和三平台打包。macOS 无签名发行包已完成构建验证，但新的 Windows 免安装 ZIP、异常仓库、大提交历史、系统缺少 Git 以及三平台核心流程尚未完成手工验证。
 
 本工作只验证当前产品 PRD 已承诺的行为，不新增产品功能。
 
@@ -16,7 +16,7 @@
 - 空仓库、同名仓库和不可访问路径；
 - 系统 Git 不可调用；
 - 较大提交历史下的响应性、取消或重试；
-- macOS、Windows、Linux 安装、启动和核心只读流程；
+- macOS、Windows、Linux 安装或解压、启动和核心只读流程；
 - GitHub Actions 的手动打包验证与自动 Release 产物上传；
 - GitHub Actions 质量检查与打包任务的 pnpm 依赖缓存；
 - 当前产品 PRD 的逐项手工验收。
@@ -34,11 +34,11 @@
 1. 空仓库、同名仓库、路径被移动或不可访问时均有明确且互不混淆的状态。
 2. 系统 Git 不可调用时能够识别并提示 Git 不可用，但不执行安装、升级或配置操作。
 3. 较大提交历史加载时界面保持响应，失败后可以恢复或重试。
-4. macOS、Windows 和 Linux 安装包均可安装并启动。
+4. macOS、Windows 和 Linux 程序包均可安装或完整解压并启动。
 5. 三个平台均可完成添加仓库、筛选提交、查看统计和复制 Markdown 的核心流程。
 6. 所有验收操作均未改变仓库 HEAD、索引、工作区或远端状态。
 7. [当前产品 PRD](../../PRD.md) 中的现行承诺均已通过合理验证。
 8. macOS 发行包保持无 Developer ID 签名和无 Apple 公证，README 提供可操作的首次打开说明。
-9. Windows 使用引导式安装程序，普通用户可以选择当前用户范围和安装目录，无需自动提权。
+9. Windows 安装程序使用引导式流程，普通用户可以选择当前用户范围和安装目录，无需自动提权；免安装 ZIP 完整解压后可直接运行。
 10. 质量检查和三平台打包任务均依据 `pnpm-lock.yaml` 恢复和保存 pnpm store 缓存。
-11. electron-builder 构建阶段不隐式发布；Release 资产只由独立上传步骤写入 GitHub Release。
+11. electron-builder 构建阶段不隐式发布；Release 资产只由独立上传步骤写入 GitHub Release，Windows 同时包含安装程序和一个 `portable.zip`。
