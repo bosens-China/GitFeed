@@ -1,0 +1,45 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 1024 1024"
+  role="img"
+  aria-labelledby="title desc"
+>
+  <title id="title">GitFeed app icon</title>
+  <desc id="desc">A flowing Git branch crosses commit nodes beside three feed lines.</desc>
+  <defs>
+    <linearGradient id="bg" x1="160" y1="120" x2="864" y2="904" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#111827" />
+      <stop offset="1" stop-color="#273449" />
+    </linearGradient>
+    <linearGradient id="flow" x1="252" y1="790" x2="772" y2="238" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6EE7F9" />
+      <stop offset="1" stop-color="#A7F3D0" />
+    </linearGradient>
+  </defs>
+  <rect x="32" y="32" width="960" height="960" rx="224" fill="url(#bg)" />
+  <path
+    d="M254 760C254 604 356 566 492 506C624 448 708 376 708 256"
+    fill="none"
+    stroke="url(#flow)"
+    stroke-width="64"
+    stroke-linecap="round"
+  />
+  <path
+    d="M490 508C610 552 708 628 770 744"
+    fill="none"
+    stroke="#6EE7F9"
+    stroke-width="64"
+    stroke-linecap="round"
+  />
+  <g fill="#182235" stroke="#A7F3D0" stroke-width="34">
+    <circle cx="254" cy="760" r="66" />
+    <circle cx="492" cy="506" r="66" />
+    <circle cx="708" cy="256" r="66" />
+    <circle cx="770" cy="744" r="66" />
+  </g>
+  <g fill="none" stroke="#E6FCFF" stroke-width="34" stroke-linecap="round" opacity="0.9">
+    <path d="M188 278H464" />
+    <path d="M188 370H384" />
+    <path d="M188 462H300" />
+  </g>
+</svg>
