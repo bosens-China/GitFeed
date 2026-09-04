@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ThemeProvider } from '@renderer/theme/ThemeProvider'
+import { CursorTooltipProvider } from '@renderer/components/CursorTooltip'
 
 interface AppProvidersProps {
   children: ReactNode
@@ -21,7 +22,9 @@ export function AppProviders({ children }: AppProvidersProps): React.JSX.Element
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>{children}</ThemeProvider>
+      <ThemeProvider>
+        <CursorTooltipProvider>{children}</CursorTooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   )
 }

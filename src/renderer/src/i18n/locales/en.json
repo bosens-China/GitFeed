@@ -9,7 +9,8 @@
     "confirm": "Confirm",
     "confirmAdd": "Add Selected",
     "actions": "Actions",
-    "close": "Close"
+    "close": "Close",
+    "retry": "Retry"
   },
   "sidebar": {
     "title": "Projects",
@@ -61,7 +62,9 @@
     "fullReportTitle": "Full Weekly Report",
     "copyWeeklyReport": "Copy Weekly Report (Markdown)",
     "copyEmptyWarning": "Report content is empty, cannot copy",
-    "emptyMarkdown": "No report content"
+    "emptyMarkdown": "No report content",
+    "activeRepoCountTooltip": "{{count}} projects are included in this report",
+    "commitCountTooltip": "{{count}} commits match the current filters"
   },
   "settings": {
     "tabs": {
@@ -163,12 +166,36 @@
     "fileChanges": "{{count}} file changes",
     "showFiles": "View file changes"
   },
+  "commitDetails": {
+    "title": "Commit details",
+    "openTooltip": "View details and diff for commit {{hash}}",
+    "message": "Commit message",
+    "hash": "Full hash",
+    "repository": "Project",
+    "author": "Author",
+    "authoredAt": "Authored at",
+    "branch": "Branch",
+    "files": "{{count}} changed files",
+    "noFiles": "No file changes recorded",
+    "binaryFile": "Binary file",
+    "diffTab": "Code diff",
+    "infoTab": "Commit info",
+    "loadingDiff": "Loading local diff…",
+    "diffLoadFailed": "Failed to load diff",
+    "diffUnavailable": "Project information is missing, so the local diff is unavailable",
+    "emptyDiff": "This commit has no text diff",
+    "binaryDiff": "Text preview is unavailable for binary files",
+    "noTextDiff": "This file has no text diff to display",
+    "notApplicable": "N/A",
+    "unknownFile": "Unknown file"
+  },
   "filterBar": {
     "thisWeek": "This Week",
     "lastWeek": "Last Week",
     "lastMonth": "Last Month",
     "custom": "Custom",
     "filterAuthors": "All Authors",
+    "noAuthors": "No authors in this range",
     "analysisBranch": "View branch",
     "configuredBranches": "Configured: {{branches}}",
     "defaultBranch": "Configured default branch",
@@ -176,6 +203,9 @@
     "defaultBranchPrefix": "Tracking",
     "groupConfigured": "Configured Branches",
     "groupAllBranches": "All Local Branches",
+    "groupOtherBranches": "Other Local Branches",
+    "trackedTag": "Tracked",
+    "temporaryTag": "Temp",
     "analysisBranchHint": "Only changes this page's analysis range. It does not run Git checkout or modify the repository.",
     "refresh": "Refresh",
     "copyTooltipDisabled": "No commits in range"

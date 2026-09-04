@@ -4,11 +4,12 @@ import { resolve } from 'path'
 export default defineConfig({
   resolve: {
     alias: {
-      '@shared': resolve('src/shared')
+      '@shared': resolve('src/shared'),
+      '@renderer': resolve('src/renderer/src')
     }
   },
   test: {
     environment: 'node',
-    include: ['tests/**/*.test.ts']
+    include: ['tests/**/*.test.{ts,tsx}']
   }
 })

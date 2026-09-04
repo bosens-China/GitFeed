@@ -9,7 +9,8 @@
     "confirm": "确定",
     "confirmAdd": "添加选中身份",
     "actions": "操作",
-    "close": "关闭"
+    "close": "关闭",
+    "retry": "重试"
   },
   "sidebar": {
     "title": "本地工程",
@@ -61,7 +62,9 @@
     "fullReportTitle": "全仓工作周报",
     "copyWeeklyReport": "复制周报 Markdown",
     "copyEmptyWarning": "周报内容为空，无法复制",
-    "emptyMarkdown": "暂无周报内容"
+    "emptyMarkdown": "暂无周报内容",
+    "activeRepoCountTooltip": "当前有 {{count}} 个工程参与周报",
+    "commitCountTooltip": "当前筛选范围内共 {{count}} 次提交"
   },
   "settings": {
     "tabs": {
@@ -163,12 +166,36 @@
     "fileChanges": "{{count}} 个文件变更",
     "showFiles": "查看变更文件列表"
   },
+  "commitDetails": {
+    "title": "提交详情",
+    "openTooltip": "查看提交 {{hash}} 的详情与 Diff",
+    "message": "提交信息",
+    "hash": "完整 Hash",
+    "repository": "工程",
+    "author": "作者",
+    "authoredAt": "提交时间",
+    "branch": "分支",
+    "files": "{{count}} 个变更文件",
+    "noFiles": "没有文件变更记录",
+    "binaryFile": "二进制文件",
+    "diffTab": "代码差异",
+    "infoTab": "提交信息",
+    "loadingDiff": "正在读取本地 Diff…",
+    "diffLoadFailed": "Diff 加载失败",
+    "diffUnavailable": "缺少工程信息，无法读取本地 Diff",
+    "emptyDiff": "该提交没有文本差异",
+    "binaryDiff": "二进制文件不支持文本预览",
+    "noTextDiff": "该文件没有可展示的文本差异",
+    "notApplicable": "无",
+    "unknownFile": "未知文件"
+  },
   "filterBar": {
     "thisWeek": "本周",
     "lastWeek": "上周",
     "lastMonth": "上个月",
     "custom": "自定义",
     "filterAuthors": "全部作者",
+    "noAuthors": "当前范围暂无作者",
     "analysisBranch": "查看分支",
     "configuredBranches": "设置：{{branches}}",
     "defaultBranch": "设置中的默认分支",
@@ -176,6 +203,9 @@
     "defaultBranchPrefix": "追踪分支",
     "groupConfigured": "已配置分析分支",
     "groupAllBranches": "所有本地分支",
+    "groupOtherBranches": "其他本地分支",
+    "trackedTag": "追踪",
+    "temporaryTag": "临时",
     "analysisBranchHint": "仅切换当前页面的分析范围，不会执行 Git checkout 或修改仓库。",
     "refresh": "刷新",
     "copyTooltipDisabled": "当前范围无提交"
