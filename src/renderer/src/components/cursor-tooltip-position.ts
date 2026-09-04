@@ -14,7 +14,7 @@ interface Size {
 
 export function calculateCursorTooltipPosition(point: Point, tooltip: Size, viewport: Size): Point {
   let x = point.x + OFFSET_X
-  let y = point.y + OFFSET_Y
+  const y = point.y + OFFSET_Y
 
   if (x + tooltip.width > viewport.width - VIEWPORT_EDGE) {
     x = point.x - tooltip.width - OFFSET_X
