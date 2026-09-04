@@ -1,21 +1,10 @@
 import { useState } from 'react'
-import {
-  App,
-  Badge,
-  Button,
-  Card,
-  Empty,
-  Popconfirm,
-  Select,
-  Space,
-  Switch,
-  Table,
-  Tooltip
-} from 'antd'
+import { App, Badge, Button, Card, Empty, Popconfirm, Space, Switch, Table, Tooltip } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import { FolderGit2, Plus, RefreshCw, Trash2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import type { RepositoryRecord, RepositoryStatus } from '@shared/models'
+import { ClosingMultiSelect } from '@renderer/components/ClosingMultiSelect'
 import { useWorkbench } from '@renderer/hooks/useWorkbench'
 
 interface RepoManagementCardProps {
@@ -130,8 +119,7 @@ export function RepoManagementCard({ repositories }: RepoManagementCardProps): R
       render: (_, record) => {
         const branches = record.selectedBranches || []
         return (
-          <Select
-            mode="multiple"
+          <ClosingMultiSelect
             className="w-full min-w-36"
             placeholder={t('settings.branchesPlaceholder', { defaultValue: '主分支' })}
             value={branches}

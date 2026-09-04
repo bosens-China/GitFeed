@@ -1,10 +1,17 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Button, Empty, Spin, Tabs, Tag } from 'antd'
 import { FileText, GitCommit } from 'lucide-react'
 import dayjs from 'dayjs'
 import isoWeek from 'dayjs/plugin/isoWeek'
 import { useTranslation } from 'react-i18next'
-import type { CommitItem, TimeRangeState } from '@shared/models'
+import {
+  authorKey,
+  defaultSelectedAuthorKeys,
+  type AuthorIdentity,
+  type CommitItem,
+  type ProjectViewTab,
+  type TimeRangeState
+} from '@shared/models'
 import { localDateKey } from '@shared/time-range'
 import { useWeeklyActivity, useWorkbench } from '@renderer/hooks/useWorkbench'
 import { AggregatedCommitFeed } from './AggregatedCommitFeed'
@@ -17,25 +24,30 @@ dayjs.extend(isoWeek)
 interface ThisWeekPageProps {
   selectedRepoId?: string | null
   onNavigateToSettings?: () => void
-  onBackToOverview?: () => void
 }
 
 export function ThisWeekPage({
   selectedRepoId,
-  onNavigateToSettings,
-  onBackToOverview
+  onNavigateToSettings
 }: ThisWeekPageProps = {}): React.JSX.Element {
   const { t } = useTranslation()
-  const { state: workbench } = useWorkbench()
+  const { state: workbench, saveProjectView } = useWorkbench()
 
   const [timeRange, setTimeRange] = useState<TimeRangeState>({ preset: 'thisWeek' })
   const [selectedRepoIds, setSelectedRepoIds] = useState<string[]>(() =>
     selectedRepoId ? [selectedRepoId] : []
   )
-  const [selectedAuthors, setSelectedAuthors] = useState<string[]>([])
+  const [selectedAuthors, setSelectedAuthors] = useState<string[] | null>(null)
   const [searchKeyword, setSearchKeyword] = useState<string>('')
-  const [activeTabKey, setActiveTabKey] = useState<'report' | 'changes'>('report')
+  const [activeTabKey, setActiveTabKey] = useState<ProjectViewTab>('report')
   const [analysisBranch, setAnalysisBranch] = useState<string | null>(null)
+  const [memoryReady, setMemoryReady] = useState(!selectedRepoId)
+  const restoredRepoId = useRef<string | null>(null)
+  const saveProjectViewRef = useRef(saveProjectView)
+
+  useEffect(() => {
+    saveProjectViewRef.current = saveProjectView
+  }, [saveProjectView])
 
   const currentRepo = useMemo(
     () =>
@@ -44,6 +56,28 @@ export function ThisWeekPage({
         : undefined,
     [selectedRepoIds, workbench?.repositories]
   )
+  const currentRepoId = currentRepo?.id
+
+  useEffect(() => {
+    if (!selectedRepoId || !currentRepo || restoredRepoId.current === currentRepo.id) return
+
+    const memory = currentRepo.viewMemory
+    const knownBranches = new Set([
+      ...(currentRepo.selectedBranches ?? []),
+      ...(currentRepo.availableBranches ?? [])
+    ])
+    setTimeRange(memory?.timeRange ?? { preset: 'thisWeek' })
+    setSelectedAuthors(memory?.selectedAuthorKeys ?? null)
+    setSearchKeyword(memory?.searchKeyword ?? '')
+    setActiveTabKey(memory?.activeTabKey ?? 'report')
+    setAnalysisBranch(
+      memory?.analysisBranch && knownBranches.has(memory.analysisBranch)
+        ? memory.analysisBranch
+        : null
+    )
+    restoredRepoId.current = currentRepo.id
+    setMemoryReady(true)
+  }, [currentRepo, selectedRepoId, workbench?.myIdentities.length])
 
   const {
     data: activityData,
@@ -57,21 +91,71 @@ export function ThisWeekPage({
     currentRepo && analysisBranch ? { repoId: currentRepo.id, branch: analysisBranch } : undefined
   )
 
-  const authorOptions = useMemo(() => {
+  const availableAuthors = useMemo((): AuthorIdentity[] => {
     const allCommits = activityData?.allCommits ?? []
-    const authorSet = new Set<string>()
+    const authors = new Map<string, AuthorIdentity>()
     for (const c of allCommits) {
       if (selectedRepoIds.length > 0 && (!c.repoId || !selectedRepoIds.includes(c.repoId))) {
         continue
       }
-      if (c.authorName) {
-        authorSet.add(c.authorName)
-      }
+      const author = { name: c.authorName, email: c.authorEmail }
+      if (author.name) authors.set(authorKey(author), author)
     }
-    return Array.from(authorSet)
-      .sort()
-      .map((name) => ({ label: name, value: name }))
+    return Array.from(authors.values()).sort((a, b) => a.name.localeCompare(b.name))
   }, [activityData?.allCommits, selectedRepoIds])
+
+  const authorOptions = useMemo(() => {
+    const options = availableAuthors.map((author) => ({
+      label: author.email ? `${author.name} <${author.email}>` : author.name,
+      value: authorKey(author)
+    }))
+    const knownKeys = new Set(options.map((option) => option.value))
+    for (const key of selectedAuthors ?? []) {
+      if (knownKeys.has(key)) continue
+      const [name, email = ''] = key.split('\u0000')
+      options.push({ label: email ? `${name} <${email}>` : name, value: key })
+    }
+    return options
+  }, [availableAuthors, selectedAuthors])
+
+  const effectiveSelectedAuthors = useMemo(
+    () =>
+      selectedAuthors ?? defaultSelectedAuthorKeys(availableAuthors, workbench?.myIdentities ?? []),
+    [availableAuthors, selectedAuthors, workbench?.myIdentities]
+  )
+
+  useEffect(() => {
+    if (
+      !selectedRepoId ||
+      !currentRepoId ||
+      !memoryReady ||
+      (selectedAuthors === null && !activityData)
+    ) {
+      return
+    }
+    const timer = window.setTimeout(() => {
+      if (selectedAuthors === null) setSelectedAuthors(effectiveSelectedAuthors)
+      void saveProjectViewRef.current(currentRepoId, {
+        timeRange,
+        selectedAuthorKeys: effectiveSelectedAuthors,
+        searchKeyword,
+        activeTabKey,
+        analysisBranch
+      })
+    }, 250)
+    return () => window.clearTimeout(timer)
+  }, [
+    activeTabKey,
+    analysisBranch,
+    currentRepoId,
+    activityData,
+    effectiveSelectedAuthors,
+    memoryReady,
+    searchKeyword,
+    selectedAuthors,
+    selectedRepoId,
+    timeRange
+  ])
 
   const filteredCommits = useMemo((): CommitItem[] => {
     const allCommits = activityData?.allCommits ?? []
@@ -79,14 +163,17 @@ export function ThisWeekPage({
       if (selectedRepoIds.length > 0 && (!c.repoId || !selectedRepoIds.includes(c.repoId))) {
         return false
       }
-      if (selectedAuthors.length > 0 && !selectedAuthors.includes(c.authorName)) {
+      if (
+        effectiveSelectedAuthors.length > 0 &&
+        !effectiveSelectedAuthors.includes(authorKey({ name: c.authorName, email: c.authorEmail }))
+      ) {
         return false
       }
       if (!searchKeyword.trim()) return true
       const kw = searchKeyword.toLowerCase()
       return c.message.toLowerCase().includes(kw) || c.shortHash.toLowerCase().includes(kw)
     })
-  }, [activityData?.allCommits, selectedRepoIds, selectedAuthors, searchKeyword])
+  }, [activityData?.allCommits, selectedRepoIds, effectiveSelectedAuthors, searchKeyword])
 
   const enabledRepos = useMemo(
     () => (workbench?.repositories ?? []).filter((r) => r.enabledForReport),
@@ -150,13 +237,12 @@ export function ThisWeekPage({
         searchKeyword={searchKeyword}
         onSearchKeywordChange={setSearchKeyword}
         authorOptions={authorOptions}
-        selectedAuthors={selectedAuthors}
+        selectedAuthors={effectiveSelectedAuthors}
         onSelectedAuthorsChange={setSelectedAuthors}
         analysisBranch={analysisBranch}
         onAnalysisBranchChange={setAnalysisBranch}
         isRefreshing={isFetching}
         onRefresh={() => refetch()}
-        onBackToOverview={onBackToOverview}
       />
 
       <div className="min-h-0 flex-1 overflow-auto p-4 md:p-6">
@@ -192,7 +278,7 @@ export function ThisWeekPage({
             ) : (
               <Tabs
                 activeKey={activeTabKey}
-                onChange={(key) => setActiveTabKey(key as 'report' | 'changes')}
+                onChange={(key) => setActiveTabKey(key as ProjectViewTab)}
                 className="mt-1"
                 items={[
                   {

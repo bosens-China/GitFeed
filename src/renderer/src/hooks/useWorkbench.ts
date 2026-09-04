@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import type {
   AuthorIdentity,
   MultiRepoWeeklyQueryResult,
+  ProjectViewMemory,
   RepositoryBranchOverride,
   RepositoryUpdate,
   TimeRangeState,
@@ -50,6 +51,7 @@ export function useWorkbench(): {
   addRepository: () => void
   removeRepository: (id: string) => void
   updateRepo: (id: string, partial: RepositoryUpdate) => Promise<void>
+  saveProjectView: (id: string, memory: ProjectViewMemory) => Promise<void>
   updateIdentities: (identities: AuthorIdentity[]) => Promise<void>
   updatePreferences: (includeMerge: boolean) => Promise<void>
   refetchWorkbench: () => Promise<unknown>
@@ -105,6 +107,13 @@ export function useWorkbench(): {
     }
   })
 
+  const projectViewMutation = useMutation({
+    mutationFn: ({ id, memory }: { id: string; memory: ProjectViewMemory }) =>
+      window.api.updateProjectView(id, memory),
+    onSuccess: (state) => queryClient.setQueryData(workbenchKey, state),
+    onError: (error: Error) => message.error(error.message)
+  })
+
   const updateIdentitiesMutation = useMutation({
     mutationFn: (identities: AuthorIdentity[]) => window.api.updateIdentities(identities),
     onSuccess: syncState,
@@ -128,6 +137,9 @@ export function useWorkbench(): {
     removeRepository: (id: string) => removeMutation.mutate(id),
     updateRepo: async (id: string, partial: RepositoryUpdate) => {
       await updateRepoMutation.mutateAsync({ id, partial })
+    },
+    saveProjectView: async (id: string, memory: ProjectViewMemory) => {
+      await projectViewMutation.mutateAsync({ id, memory })
     },
     updateIdentities: async (identities: AuthorIdentity[]) => {
       await updateIdentitiesMutation.mutateAsync(identities)

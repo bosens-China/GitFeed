@@ -4,13 +4,14 @@ import { app } from 'electron'
 import {
   createDefaultFilters,
   type AuthorIdentity,
+  type ProjectViewMemory,
   type RepositoryFilters,
   type RepositoryRecord,
   type RepositoryUpdate,
   type WorkbenchState
 } from '@shared/models'
 
-const STORE_VERSION = 2 as const
+const STORE_VERSION = 3 as const
 let mutationQueue: Promise<void> = Promise.resolve()
 
 function storePath(): string {
@@ -83,7 +84,49 @@ function normalizeRepository(
       branch: defaultBranch,
       authors: repo.filters?.authors ?? { mode: 'all' },
       timeRange: repo.filters?.timeRange ?? { preset: 'thisWeek' }
-    }
+    },
+    viewMemory: normalizeProjectViewMemory(repo.viewMemory)
+  }
+}
+
+function normalizeProjectViewMemory(value: unknown): ProjectViewMemory | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const memory = value as Partial<ProjectViewMemory>
+  const rawTimeRange = memory.timeRange
+  const presets = new Set(['thisWeek', 'lastWeek', 'thisMonth', 'lastMonth', 'custom'])
+  if (
+    !rawTimeRange ||
+    typeof rawTimeRange !== 'object' ||
+    !presets.has(rawTimeRange.preset) ||
+    (rawTimeRange.preset === 'custom' &&
+      (typeof rawTimeRange.customStart !== 'string' || typeof rawTimeRange.customEnd !== 'string'))
+  ) {
+    return undefined
+  }
+
+  const timeRange =
+    rawTimeRange.preset === 'custom'
+      ? {
+          preset: 'custom' as const,
+          customStart: rawTimeRange.customStart,
+          customEnd: rawTimeRange.customEnd
+        }
+      : { preset: rawTimeRange.preset }
+
+  return {
+    timeRange: timeRange as ProjectViewMemory['timeRange'],
+    selectedAuthorKeys: Array.isArray(memory.selectedAuthorKeys)
+      ? memory.selectedAuthorKeys
+          .filter((item): item is string => typeof item === 'string' && item.length <= 600)
+          .slice(0, 100)
+      : [],
+    searchKeyword:
+      typeof memory.searchKeyword === 'string' ? memory.searchKeyword.slice(0, 1000) : '',
+    activeTabKey: memory.activeTabKey === 'changes' ? 'changes' : 'report',
+    analysisBranch:
+      typeof memory.analysisBranch === 'string' && memory.analysisBranch.length <= 255
+        ? memory.analysisBranch
+        : null
   }
 }
 
@@ -180,6 +223,17 @@ export async function updateRepositoryFilters(
       throw new Error('仓库不存在')
     }
     repo.filters = filters
+  })
+}
+
+export async function updateProjectViewMemory(
+  id: string,
+  viewMemory: ProjectViewMemory
+): Promise<WorkbenchState> {
+  return mutateWorkbenchState((state) => {
+    const repo = state.repositories.find((item) => item.id === id)
+    if (!repo) throw new Error('仓库不存在')
+    repo.viewMemory = viewMemory
   })
 }
 
