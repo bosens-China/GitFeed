@@ -4,6 +4,17 @@ import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerIpcHandlers } from './ipc'
 
+function openExternalWebUrl(value: string): void {
+  try {
+    const url = new URL(value)
+    if (url.protocol === 'https:' || url.protocol === 'http:') {
+      void shell.openExternal(url.toString())
+    }
+  } catch {
+    // Ignore malformed and non-web URLs from renderer content.
+  }
+}
+
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1280,
@@ -29,7 +40,9 @@ function createWindow(): void {
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
-      sandbox: false
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true
     }
   })
 
@@ -38,8 +51,13 @@ function createWindow(): void {
   })
 
   mainWindow.webContents.setWindowOpenHandler((details) => {
-    shell.openExternal(details.url)
+    openExternalWebUrl(details.url)
     return { action: 'deny' }
+  })
+
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    event.preventDefault()
+    openExternalWebUrl(url)
   })
 
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
@@ -50,7 +68,7 @@ function createWindow(): void {
 }
 
 app.whenReady().then(() => {
-  electronApp.setAppUserModelId('com.gitfeed.app')
+  electronApp.setAppUserModelId('com.yliu.gitfeed')
   app.on('browser-window-created', (_, window) => {
     optimizer.watchWindowShortcuts(window)
   })

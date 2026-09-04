@@ -1,45 +1,43 @@
-appId: com.electron.app
-productName: gitfeed
+appId: com.yliu.gitfeed
+productName: GitFeed
 directories:
   buildResources: build
 files:
   - '!**/.vscode/*'
+  - '!{.agents,.github,docs,tests}{,/**/*}'
+  - '!{coverage,dist}{,/**/*}'
   - '!src/*'
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!{.eslintcache,eslint.config.mjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
-  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!{pnpm-workspace.yaml,skills-lock.json,tsconfig.json,tsconfig.node.json,tsconfig.web.json,uno.config.ts,vitest.config.ts}'
 asarUnpack:
   - resources/**
 win:
   executableName: gitfeed
 nsis:
-  artifactName: ${name}-${version}-setup.${ext}
+  artifactName: ${name}-${version}-windows-${arch}-setup.${ext}
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always
 mac:
+  artifactName: ${name}-${version}-mac-${arch}.${ext}
   entitlementsInherit: build/entitlements.mac.plist
-  extendInfo:
-    - NSCameraUsageDescription: Application requests access to the device's camera.
-    - NSMicrophoneUsageDescription: Application requests access to the device's microphone.
-    - NSDocumentsFolderUsageDescription: Application requests access to the user's Documents folder.
-    - NSDownloadsFolderUsageDescription: Application requests access to the user's Downloads folder.
   notarize: false
 dmg:
-  artifactName: ${name}-${version}.${ext}
+  artifactName: ${name}-${version}-mac-${arch}.${ext}
 linux:
+  artifactName: ${name}-${version}-linux-${arch}.${ext}
+  syncDesktopName: true
   target:
     - AppImage
-    - snap
     - deb
-  maintainer: electronjs.org
+  maintainer: yliu
   category: Utility
-appImage:
-  artifactName: ${name}-${version}.${ext}
 npmRebuild: false
 publish:
-  provider: generic
-  url: https://example.com/auto-updates
+  provider: github
+  owner: bosens-China
+  repo: GitFeed
 electronDownload:
   mirror: https://npmmirror.com/mirrors/electron/

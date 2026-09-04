@@ -2,6 +2,9 @@ import { useEffect, useSyncExternalStore, type ReactNode } from 'react'
 import { useLocalStorageState } from 'ahooks'
 import { ConfigProvider, App as AntdApp, theme as antdTheme } from 'antd'
 import zhCN from 'antd/locale/zh_CN'
+import enUS from 'antd/locale/en_US'
+import { useTranslation } from 'react-i18next'
+import { updateDayjsLocale } from '@renderer/i18n'
 import { ThemeContext } from './context'
 import { THEME_MODE_STORAGE_KEY, type ThemeMode } from './types'
 
@@ -27,6 +30,7 @@ export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Eleme
   const [mode, setMode] = useLocalStorageState<ThemeMode>(THEME_MODE_STORAGE_KEY, {
     defaultValue: 'system'
   })
+  const { i18n } = useTranslation()
   const prefersDark = usePrefersDark()
   const resolvedMode = mode ?? 'system'
   const isDark = resolvedMode === 'dark' || (resolvedMode === 'system' && prefersDark)
@@ -37,6 +41,10 @@ export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Eleme
     root.style.colorScheme = isDark ? 'dark' : 'light'
   }, [isDark])
 
+  useEffect(() => {
+    updateDayjsLocale(i18n.language)
+  }, [i18n.language])
+
   const contextValue = {
     mode: resolvedMode,
     setMode: (next: ThemeMode) => setMode(next),
@@ -46,14 +54,19 @@ export function ThemeProvider({ children }: ThemeProviderProps): React.JSX.Eleme
   return (
     <ThemeContext.Provider value={contextValue}>
       <ConfigProvider
-        locale={zhCN}
+        locale={i18n.language.startsWith('zh') ? zhCN : enUS}
         theme={{
           algorithm: isDark ? antdTheme.darkAlgorithm : antdTheme.defaultAlgorithm,
+          token: {
+            colorBgLayout: isDark ? '#141414' : '#fafafa'
+          },
           cssVar: { key: 'gitfeed' },
           hashed: false
         }}
       >
-        <AntdApp className="h-full min-h-screen">{children}</AntdApp>
+        <AntdApp className="h-full min-h-screen bg-[var(--ant-color-bg-layout)] text-[var(--ant-color-text)]">
+          {children}
+        </AntdApp>
       </ConfigProvider>
     </ThemeContext.Provider>
   )

@@ -1,21 +1,64 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { App } from 'antd'
-import type { RepositoryFilters, WorkbenchState } from '@shared/models'
+import type { TFunction } from 'i18next'
+import { useTranslation } from 'react-i18next'
+import type {
+  AuthorIdentity,
+  MultiRepoWeeklyQueryResult,
+  RepositoryBranchOverride,
+  RepositoryUpdate,
+  TimeRangeState,
+  WorkbenchState
+} from '@shared/models'
 
-const workbenchKey = ['workbench'] as const
+export const workbenchKey = ['workbench'] as const
+export const weeklyActivityKey = (
+  timeRange: TimeRangeState,
+  includeMerge?: boolean,
+  branchOverride?: RepositoryBranchOverride
+) =>
+  [
+    'weekly-activity',
+    timeRange,
+    includeMerge,
+    branchOverride?.repoId,
+    branchOverride?.branch
+  ] as const
+
+function localizeMainProcessError(
+  error: Error,
+  fallback: string,
+  language: string,
+  t: TFunction
+): string {
+  const knownErrors: Array<[string, string]> = [
+    ['不是有效的 Git 仓库', 'errors.NOT_GIT'],
+    ['仓库路径不存在', 'errors.PATH_MISSING'],
+    ['未找到系统 Git', 'errors.NO_GIT_BINARY'],
+    ['已在列表中', 'errors.DUPLICATE'],
+    ['时间范围', 'errors.INVALID_RANGE']
+  ]
+  const matched = knownErrors.find(([text]) => error.message.includes(text))
+
+  if (matched) return t(matched[1])
+  return language.startsWith('zh') && error.message ? error.message : fallback
+}
 
 export function useWorkbench(): {
   state: WorkbenchState | undefined
   isLoading: boolean
   addRepository: () => void
   removeRepository: (id: string) => void
-  setActiveRepository: (id: string | null) => void
-  updateFilters: (id: string, filters: RepositoryFilters) => Promise<void>
+  updateRepo: (id: string, partial: RepositoryUpdate) => Promise<void>
+  updateIdentities: (identities: AuthorIdentity[]) => Promise<void>
+  updatePreferences: (includeMerge: boolean) => Promise<void>
+  refetchWorkbench: () => Promise<unknown>
   adding: boolean
-  updatingFilters: boolean
+  updating: boolean
 } {
   const { message } = App.useApp()
   const queryClient = useQueryClient()
+  const { t, i18n } = useTranslation()
 
   const query = useQuery({
     queryKey: workbenchKey,
@@ -24,16 +67,19 @@ export function useWorkbench(): {
 
   const syncState = (state: WorkbenchState): void => {
     queryClient.setQueryData(workbenchKey, state)
+    void queryClient.invalidateQueries({ queryKey: ['weekly-activity'] })
   }
 
   const addMutation = useMutation({
     mutationFn: () => window.api.addRepository(),
     onSuccess: (state) => {
       syncState(state)
-      message.success('已添加仓库')
+      message.success(t('workbench.addSuccess'))
     },
     onError: (error: Error) => {
-      message.error(error.message || '添加仓库失败')
+      message.error(
+        localizeMainProcessError(error, t('workbench.addFailed'), i18n.resolvedLanguage ?? '', t)
+      )
     }
   })
 
@@ -41,27 +87,37 @@ export function useWorkbench(): {
     mutationFn: (id: string) => window.api.removeRepository(id),
     onSuccess: (state) => {
       syncState(state)
-      message.success('已从工作台移除（本地仓库未删除）')
+      message.success(t('workbench.removeSuccess'))
     },
     onError: (error: Error) => {
-      message.error(error.message || '移除失败')
+      message.error(
+        localizeMainProcessError(error, t('workbench.removeFailed'), i18n.resolvedLanguage ?? '', t)
+      )
     }
   })
 
-  const activeMutation = useMutation({
-    mutationFn: (id: string | null) => window.api.setActiveRepository(id),
+  const updateRepoMutation = useMutation({
+    mutationFn: ({ id, partial }: { id: string; partial: RepositoryUpdate }) =>
+      window.api.updateRepo(id, partial),
     onSuccess: syncState,
     onError: (error: Error) => {
-      message.error(error.message || '切换仓库失败')
+      message.error(error.message)
     }
   })
 
-  const filtersMutation = useMutation({
-    mutationFn: ({ id, filters }: { id: string; filters: RepositoryFilters }) =>
-      window.api.updateFilters(id, filters),
+  const updateIdentitiesMutation = useMutation({
+    mutationFn: (identities: AuthorIdentity[]) => window.api.updateIdentities(identities),
     onSuccess: syncState,
     onError: (error: Error) => {
-      message.error(error.message || '保存筛选失败')
+      message.error(error.message)
+    }
+  })
+
+  const updatePreferencesMutation = useMutation({
+    mutationFn: (includeMerge: boolean) => window.api.updatePreferences(includeMerge),
+    onSuccess: syncState,
+    onError: (error: Error) => {
+      message.error(error.message)
     }
   })
 
@@ -69,41 +125,64 @@ export function useWorkbench(): {
     state: query.data,
     isLoading: query.isLoading,
     addRepository: () => addMutation.mutate(),
-    removeRepository: (id) => removeMutation.mutate(id),
-    setActiveRepository: (id) => activeMutation.mutate(id),
-    updateFilters: async (id, filters) => {
-      await filtersMutation.mutateAsync({ id, filters })
+    removeRepository: (id: string) => removeMutation.mutate(id),
+    updateRepo: async (id: string, partial: RepositoryUpdate) => {
+      await updateRepoMutation.mutateAsync({ id, partial })
     },
+    updateIdentities: async (identities: AuthorIdentity[]) => {
+      await updateIdentitiesMutation.mutateAsync(identities)
+    },
+    updatePreferences: async (includeMerge: boolean) => {
+      await updatePreferencesMutation.mutateAsync(includeMerge)
+    },
+    refetchWorkbench: () => query.refetch(),
     adding: addMutation.isPending,
-    updatingFilters: filtersMutation.isPending
+    updating: updateRepoMutation.isPending || updateIdentitiesMutation.isPending
   }
 }
 
-export function useRepositoryQuery(repositoryId: string | null | undefined): {
-  data: Awaited<ReturnType<typeof window.api.queryRepository>> | undefined
+export function useWeeklyActivity(
+  timeRange: TimeRangeState,
+  overrideIncludeMerge?: boolean,
+  branchOverride?: RepositoryBranchOverride
+): {
+  data: MultiRepoWeeklyQueryResult | undefined
   isFetching: boolean
   isLoading: boolean
   refetch: () => void
-  errorMessage: string | null
+  error: Error | null
 } {
   const query = useQuery({
-    queryKey: ['repository', repositoryId],
-    enabled: Boolean(repositoryId),
-    queryFn: () => window.api.queryRepository(repositoryId!),
-    staleTime: 0
+    queryKey: weeklyActivityKey(timeRange, overrideIncludeMerge, branchOverride),
+    queryFn: () => window.api.queryWeeklyActivity(timeRange, overrideIncludeMerge, branchOverride),
+    staleTime: 5000
   })
 
-  const data = query.data
-  const errorMessage =
-    data && !data.ok ? data.error : query.error instanceof Error ? query.error.message : null
-
   return {
-    data,
+    data: query.data,
     isFetching: query.isFetching,
     isLoading: query.isLoading,
     refetch: () => {
       void query.refetch()
     },
-    errorMessage
+    error: query.error as Error | null
+  }
+}
+
+export function useGitStatus(): {
+  status: { ok: boolean; version?: string; error?: string } | undefined
+  isLoading: boolean
+  refetchStatus: () => Promise<unknown>
+} {
+  const query = useQuery({
+    queryKey: ['app-git-status'],
+    queryFn: () => window.api.getGitStatus(),
+    staleTime: 30000
+  })
+
+  return {
+    status: query.data,
+    isLoading: query.isLoading,
+    refetchStatus: () => query.refetch()
   }
 }

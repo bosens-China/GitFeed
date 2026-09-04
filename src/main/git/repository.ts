@@ -7,7 +7,8 @@ export { resolveBranchFallback }
 
 export async function normalizeRepoPath(inputPath: string): Promise<string> {
   const absolute = path.resolve(inputPath)
-  return process.platform === 'win32' ? absolute : path.normalize(absolute)
+  const canonical = await fs.realpath(absolute)
+  return path.normalize(canonical)
 }
 
 export async function pathExists(repoPath: string): Promise<boolean> {

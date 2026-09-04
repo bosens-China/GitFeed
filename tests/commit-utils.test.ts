@@ -5,7 +5,7 @@ import {
   filterCommitsByAuthors,
   reconcileAuthorsFilter
 } from '../src/shared/commit-utils'
-import type { CommitItem } from '../src/shared/models'
+import { matchesAnyIdentity, matchesIdentity, type CommitItem } from '../src/shared/models'
 
 function commit(partial: Partial<CommitItem> & Pick<CommitItem, 'hash'>): CommitItem {
   return {
@@ -131,5 +131,22 @@ describe('commit-utils', () => {
       })
     ).toEqual([commits[1]])
     expect(filterCommitsByAuthors(commits, { mode: 'selected', authors: [] })).toEqual([])
+  })
+
+  it('matches identity with case-insensitive email', () => {
+    expect(
+      matchesIdentity(
+        { name: 'Yang Liu', email: 'YangBoses@gmail.com' },
+        { name: 'yliu', email: 'yangboses@gmail.com' }
+      )
+    ).toBe(true)
+
+    expect(
+      matchesAnyIdentity({ name: 'Yang Liu', email: 'other@gmail.com' }, [
+        { name: 'yliu', email: 'yangboses@gmail.com' }
+      ])
+    ).toBe(false)
+
+    expect(matchesAnyIdentity({ name: 'Someone', email: 'someone@x.com' }, [])).toBe(true)
   })
 })

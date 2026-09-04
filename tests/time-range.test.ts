@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { customDayBounds, resolveTimeRange } from '../src/shared/time-range'
+import { customDayBounds, localDateKey, resolveTimeRange } from '../src/shared/time-range'
 
 describe('resolveTimeRange', () => {
   it('resolves thisWeek as Monday 00:00 to now (left-closed right-open label)', () => {
@@ -69,5 +69,16 @@ describe('resolveTimeRange', () => {
     const thisWeek = resolveTimeRange({ preset: 'thisWeek' }, wednesday)
     expect(thisWeek.start).toEqual(new Date(2024, 11, 30, 0, 0, 0, 0))
     expect(thisWeek.end).toEqual(wednesday)
+  })
+})
+
+describe('localDateKey', () => {
+  it('groups ISO timestamps by the current local calendar day', () => {
+    const localTime = new Date(2026, 8, 4, 0, 30)
+    expect(localDateKey(localTime.toISOString())).toBe('2026-09-04')
+  })
+
+  it('rejects invalid timestamps', () => {
+    expect(() => localDateKey('not-a-date')).toThrow(/无效日期/)
   })
 })

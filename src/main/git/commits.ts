@@ -15,12 +15,19 @@ interface RawCommit {
 
 export async function listCommitsInRange(options: {
   repoPath: string
-  branch: string
+  branch?: string
+  branches?: string[]
   start: Date
   end: Date
   includeMerge: boolean
+  repoId?: string
+  repoName?: string
 }): Promise<CommitItem[]> {
-  const { repoPath, branch, start, end, includeMerge } = options
+  const { repoPath, branch, branches, start, end, includeMerge, repoId, repoName } = options
+  const targetBranches = branches && branches.length > 0 ? branches : branch ? [branch] : []
+  if (targetBranches.length === 0) {
+    return []
+  }
 
   const format = ['%H', '%an', '%ae', '%aI', '%P', '%B'].join(COMMIT_FIELD_SEP)
 
@@ -29,7 +36,7 @@ export async function listCommitsInRange(options: {
     'core.quotepath=false',
     'log',
     `--pretty=format:${format}${COMMIT_RECORD_SEP}`,
-    branch,
+    ...targetBranches,
     '--'
   ]
 
@@ -64,7 +71,9 @@ export async function listCommitsInRange(options: {
           authoredAt: raw.authoredAt,
           message: raw.message.replace(/\r\n/g, '\n').replace(/\s+$/u, ''),
           isMerge: raw.parents.length > 1,
-          branch,
+          branch: targetBranches.length === 1 ? targetBranches[0] : branch || targetBranches[0],
+          repoId,
+          repoName,
           files
         } satisfies CommitItem
       })

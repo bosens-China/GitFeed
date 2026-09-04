@@ -22,18 +22,39 @@ export interface RepositoryFilters {
   includeMerge: boolean
 }
 
+export type RepositoryStatus = 'available' | 'empty' | 'missing' | 'not_git' | 'error'
+
 export interface RepositoryRecord {
   /** 规范化绝对路径 */
   id: string
   path: string
   name: string
+  enabledForReport: boolean
+  selectedBranches: string[]
+  /** 最近一次检测到的本地分支，用于设置页安全选择 */
+  availableBranches?: string[]
+  status?: RepositoryStatus
+  lastCheckedAt?: string
+  errorMessage?: string
   filters: RepositoryFilters
 }
 
+/** 仅用于当前查询的临时分支，不会写入工程配置。 */
+export interface RepositoryBranchOverride {
+  repoId: string
+  branch: string
+}
+
+export type RepositoryUpdate = Partial<
+  Pick<RepositoryRecord, 'name' | 'enabledForReport' | 'selectedBranches'>
+>
+
 export interface WorkbenchState {
-  version: 1
+  version: 2
   repositories: RepositoryRecord[]
   activeRepositoryId: string | null
+  myIdentities: AuthorIdentity[]
+  includeMergeDefault: boolean
 }
 
 export type FileChangeStatus = 'A' | 'M' | 'D' | 'R' | 'C' | 'T' | 'U' | '?'
@@ -56,6 +77,8 @@ export interface CommitItem {
   message: string
   isMerge: boolean
   branch: string
+  repoId?: string
+  repoName?: string
   files: FileChange[]
 }
 
@@ -71,6 +94,35 @@ export interface ResolvedTimeRange {
   end: Date
   label: string
   timezone: string
+}
+
+export interface RepoQueryResult {
+  repoId: string
+  repoName: string
+  repoPath: string
+  status: RepositoryStatus
+  branches: string[]
+  resolvedBranches: string[]
+  branchWarning?: string
+  commits: CommitItem[]
+  stats: CommitStats
+  error?: string
+}
+
+export interface MultiRepoWeeklyQueryResult {
+  ok: boolean
+  timeRange: ResolvedTimeRange
+  repos: RepoQueryResult[]
+  allCommits: CommitItem[]
+  summaryStats: {
+    commitCount: number
+    activeRepoCount: number
+    activeDayCount: number
+    additions: number
+    deletions: number
+    changedFiles: number
+  }
+  error?: string
 }
 
 export type RepositoryQuerySuccess = {
@@ -108,9 +160,24 @@ export function createDefaultFilters(): RepositoryFilters {
 }
 
 export function authorKey(author: AuthorIdentity): string {
-  return `${author.name}\u0000${author.email}`
+  return `${author.name.trim()}\u0000${author.email.trim().toLowerCase()}`
 }
 
 export function sameAuthor(a: AuthorIdentity, b: AuthorIdentity): boolean {
-  return a.name === b.name && a.email === b.email
+  return (
+    a.name.trim().toLowerCase() === b.name.trim().toLowerCase() &&
+    a.email.trim().toLowerCase() === b.email.trim().toLowerCase()
+  )
+}
+
+export function matchesIdentity(author: AuthorIdentity, identity: AuthorIdentity): boolean {
+  if (author.email && identity.email) {
+    return author.email.trim().toLowerCase() === identity.email.trim().toLowerCase()
+  }
+  return author.name.trim().toLowerCase() === identity.name.trim().toLowerCase()
+}
+
+export function matchesAnyIdentity(author: AuthorIdentity, identities: AuthorIdentity[]): boolean {
+  if (identities.length === 0) return true
+  return identities.some((identity) => matchesIdentity(author, identity))
 }

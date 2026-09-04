@@ -1,10 +1,19 @@
 {
   "name": "gitfeed",
   "version": "1.0.0",
-  "description": "An Electron application with React and TypeScript",
+  "description": "A cross-platform, local-first Git weekly report desktop app",
+  "desktopName": "com.yliu.gitfeed.desktop",
   "main": "./out/main/index.js",
-  "author": "example.com",
-  "homepage": "https://electron-vite.org",
+  "author": "yliu",
+  "license": "MIT",
+  "homepage": "https://github.com/bosens-China/GitFeed#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bosens-China/GitFeed.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bosens-China/GitFeed/issues"
+  },
   "scripts": {
     "format": "prettier --write .",
     "lint": "eslint --cache .",
@@ -24,16 +33,18 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.2",
-    "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@tanstack/react-query": "^5.101.2",
+    "@tanstack/react-router": "^1.170.32",
     "@tanstack/react-virtual": "^3.14.6",
     "ahooks": "^3.9.7",
     "antd": "^6.5.1",
     "dayjs": "^1.11.21",
-    "electron-updater": "^6.3.9",
     "es-toolkit": "^1.49.0",
-    "execa": "8.0.1"
+    "execa": "8.0.1",
+    "i18next": "^26.3.6",
+    "lucide-react": "^1.25.0",
+    "react-i18next": "^17.0.10"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config-prettier": "^3.0.0",
@@ -42,9 +53,10 @@
     "@types/node": "^22.20.1",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
+    "@unocss/reset": "^66.9.2",
     "@vitejs/plugin-react": "^5.1.1",
     "babel-plugin-react-compiler": "^1.0.0",
-    "electron": "^39.2.6",
+    "electron": "^44.1.1",
     "electron-builder": "^26.0.12",
     "electron-vite": "^5.0.0",
     "eslint": "^9.39.1",

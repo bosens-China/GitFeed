@@ -13,12 +13,13 @@ export class GitCommandError extends Error {
 export async function runGit(
   cwd: string,
   args: string[],
-  options?: { reject?: boolean }
+  options?: { reject?: boolean; stripFinalNewline?: boolean }
 ): Promise<{ stdout: string; stderr: string; exitCode: number }> {
   try {
     const result = await execa('git', args, {
       cwd,
       reject: options?.reject ?? true,
+      stripFinalNewline: options?.stripFinalNewline ?? true,
       windowsHide: true,
       env: {
         ...process.env,

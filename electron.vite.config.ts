@@ -9,16 +9,25 @@ const sharedAlias = {
 
 export default defineConfig({
   main: {
+    build: {
+      target: 'node24.19'
+    },
     resolve: {
       alias: sharedAlias
     }
   },
   preload: {
+    build: {
+      target: 'node24.19'
+    },
     resolve: {
       alias: sharedAlias
     }
   },
   renderer: {
+    build: {
+      target: 'chrome152'
+    },
     resolve: {
       alias: {
         ...sharedAlias,

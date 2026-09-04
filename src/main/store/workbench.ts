@@ -3,12 +3,14 @@ import path from 'node:path'
 import { app } from 'electron'
 import {
   createDefaultFilters,
+  type AuthorIdentity,
   type RepositoryFilters,
   type RepositoryRecord,
+  type RepositoryUpdate,
   type WorkbenchState
 } from '@shared/models'
 
-const STORE_VERSION = 1 as const
+const STORE_VERSION = 2 as const
 let mutationQueue: Promise<void> = Promise.resolve()
 
 function storePath(): string {
@@ -19,39 +21,66 @@ function emptyState(): WorkbenchState {
   return {
     version: STORE_VERSION,
     repositories: [],
-    activeRepositoryId: null
+    activeRepositoryId: null,
+    myIdentities: [],
+    includeMergeDefault: false
   }
 }
 
 export async function readWorkbenchState(): Promise<WorkbenchState> {
   try {
     const raw = await fs.readFile(storePath(), 'utf8')
-    const parsed = JSON.parse(raw) as WorkbenchState
-    if (!parsed || parsed.version !== STORE_VERSION || !Array.isArray(parsed.repositories)) {
+    const parsed = JSON.parse(raw) as WorkbenchState & { version: number }
+    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.repositories)) {
       return emptyState()
     }
+
     const repositories = parsed.repositories.map(normalizeRepository)
     const activeRepositoryId = repositories.some((repo) => repo.id === parsed.activeRepositoryId)
       ? parsed.activeRepositoryId
       : (repositories[0]?.id ?? null)
+
+    const myIdentities = Array.isArray(parsed.myIdentities) ? parsed.myIdentities : []
+    const includeMergeDefault = Boolean(parsed.includeMergeDefault)
+
     return {
       version: STORE_VERSION,
       repositories,
-      activeRepositoryId
+      activeRepositoryId,
+      myIdentities,
+      includeMergeDefault
     }
   } catch {
     return emptyState()
   }
 }
 
-function normalizeRepository(repo: RepositoryRecord): RepositoryRecord {
+function normalizeRepository(
+  repo: Partial<RepositoryRecord> & { id: string; path: string; name: string }
+): RepositoryRecord {
+  const defaultBranch = repo.filters?.branch ?? null
+  const selectedBranches = Array.isArray(repo.selectedBranches)
+    ? repo.selectedBranches
+    : defaultBranch
+      ? [defaultBranch]
+      : []
+
   return {
     id: repo.id,
     path: repo.path,
     name: repo.name,
+    enabledForReport: repo.enabledForReport ?? true,
+    selectedBranches,
+    availableBranches: Array.isArray(repo.availableBranches)
+      ? repo.availableBranches
+      : selectedBranches,
+    status: repo.status ?? 'available',
+    lastCheckedAt: repo.lastCheckedAt,
+    errorMessage: repo.errorMessage,
     filters: {
       ...createDefaultFilters(),
       ...repo.filters,
+      branch: defaultBranch,
       authors: repo.filters?.authors ?? { mode: 'all' },
       timeRange: repo.filters?.timeRange ?? { preset: 'thisWeek' }
     }
@@ -96,6 +125,39 @@ export async function removeRepositoryRecord(id: string): Promise<WorkbenchState
     if (state.activeRepositoryId === id) {
       state.activeRepositoryId = state.repositories[0]?.id ?? null
     }
+  })
+}
+
+export async function updateRepositoryRecord(
+  id: string,
+  update: RepositoryUpdate &
+    Partial<
+      Pick<RepositoryRecord, 'availableBranches' | 'status' | 'lastCheckedAt' | 'errorMessage'>
+    >
+): Promise<WorkbenchState> {
+  return mutateWorkbenchState((state) => {
+    const repoIndex = state.repositories.findIndex((item) => item.id === id)
+    if (repoIndex === -1) {
+      throw new Error('仓库不存在')
+    }
+    state.repositories[repoIndex] = {
+      ...state.repositories[repoIndex],
+      ...update
+    }
+  })
+}
+
+export async function updateMyIdentities(identities: AuthorIdentity[]): Promise<WorkbenchState> {
+  return mutateWorkbenchState((state) => {
+    state.myIdentities = identities
+  })
+}
+
+export async function updateIncludeMergeDefault(
+  includeMergeDefault: boolean
+): Promise<WorkbenchState> {
+  return mutateWorkbenchState((state) => {
+    state.includeMergeDefault = includeMergeDefault
   })
 }
 
