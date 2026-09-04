@@ -136,7 +136,7 @@
     "environmentTitle": "System Git Environment",
     "gitAvailable": "Git Environment Ready",
     "gitDescOk": "Git executable is available. All read-only analysis and queries are operating normally.",
-    "gitNotFoundDesc": "Git binary not found. Please ensure Git is installed and available in PATH."
+    "gitNotFoundDesc": "GitFeed requires a Git command provided by the system. The app only checks Git availability; it does not install, upgrade, or configure Git."
   },
   "workbench": {
     "loading": "Loading workbench…",

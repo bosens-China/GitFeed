@@ -17,6 +17,10 @@ win:
   executableName: gitfeed
 nsis:
   artifactName: ${name}-${version}-windows-${arch}-setup.${ext}
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: true
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
   createDesktopShortcut: always

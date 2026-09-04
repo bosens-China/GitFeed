@@ -9,6 +9,7 @@ GitFeed 是一款跨平台、本地优先的个人 Git 周报工具。它从多�
 ## 全局原则
 
 - 支持 macOS、Windows 和 Linux。
+- 应用以当前登录用户权限运行，不请求提权，不修改或绕过文件系统权限；仓库是否可访问由操作系统和当前用户权限决定。
 - 仓库数据只在本机读取和处理，不上传 commit message、文件路径或仓库内容。
 - 所有 Git 操作必须只读，不执行 checkout、reset、clean、commit、merge、rebase、pull 或 push。
 - 选择分析分支不得改变仓库 HEAD、索引或工作区。
@@ -104,8 +105,9 @@ GitFeed 是一款跨平台、本地优先的个人 Git 周报工具。它从多�
 
 - 官方安装包通过 GitHub Releases 免费发布。
 - 只维护主流桌面平台的安装包：macOS 提供 Apple 芯片（M 系列，arm64）的 DMG 与 ZIP；Windows 提供 x64 安装程序；Linux 提供 x64 AppImage 和 DEB。
+- Windows 安装程序使用引导式流程，默认按当前用户安装，允许用户选择安装目录，普通用户流程不自动请求提权。
 - macOS 安装包不使用 Apple Developer ID 证书，也不进行 Apple 公证。README 必须说明 Gatekeeper 的首次打开步骤。
-- 自动发布前必须通过测试、类型检查和代码规范检查。可以手动触发三平台打包验证，但不创建 GitHub Release。
+- 自动发布前必须通过测试、类型检查和代码规范检查。CI 安装依赖时使用由 `pnpm-lock.yaml` 驱动的 pnpm store 缓存；可以手动触发三平台打包验证，但不创建 GitHub Release。
 
 ## 安全与异常要求
 
@@ -114,7 +116,7 @@ GitFeed 是一款跨平台、本地优先的个人 Git 周报工具。它从多�
 - Renderer 不能提交任意仓库路径；Git 查询只能使用已由系统目录选择器加入工作台的路径。
 - 外部打开仅允许 `http` 和 `https` URL。
 - 工程状态必须来自实际检测结果，不能因上次成功而假定当前可用。
-- 系统 Git 不可调用时保留配置并提供安装或 PATH 修复说明。
+- 系统 Git 不可调用时保留配置并提示 Git 不可用；应用不安装、升级或配置系统 Git。
 - 日志不得记录完整 commit message、完整文件列表或周报正文。
 
 ## 当前非目标

@@ -45,7 +45,7 @@ export async function runGit(
 
     if (err.code === 'ENOENT') {
       throw new GitCommandError(
-        '未找到系统 Git，请先安装 Git 并确保可在终端中执行 `git`。',
+        '未找到可用的系统 Git。GitFeed 需要系统已提供 `git` 命令，请自行处理 Git 环境。',
         'NO_GIT_BINARY'
       )
     }

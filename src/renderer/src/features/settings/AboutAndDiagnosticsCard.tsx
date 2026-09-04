@@ -179,11 +179,8 @@ export function AboutAndDiagnosticsCard(): React.JSX.Element {
                   {gitStatus?.error ||
                     t('settings.gitNotFoundDesc', {
                       defaultValue:
-                        '未找到系统 Git 可执行文件，请确保系统已安装 Git 并已将其路径加入系统环境变量 PATH 中。'
+                        'GitFeed 需要系统已提供 Git 命令。应用只检测 Git 是否可用，不负责安装、升级或配置 Git。'
                     })}
-                </div>
-                <div className="mt-2 font-mono text-xs bg-[var(--ant-color-fill-secondary)] p-2.5 rounded">
-                  macOS: <code>brew install git</code> | Windows: <code>winget install --id Git.Git</code> | Linux: <code>sudo apt install git</code>
                 </div>
               </div>
             }
