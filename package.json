@@ -29,7 +29,11 @@
     "build:unpack": "pnpm run build && electron-builder --dir",
     "build:win": "pnpm run build && electron-builder --win",
     "build:mac": "pnpm run build && electron-builder --mac",
-    "build:linux": "pnpm run build && electron-builder --linux"
+    "build:linux": "pnpm run build && electron-builder --linux",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{cjs,css,html,js,json,jsonc,jsx,md,mdx,mjs,scss,ts,tsx,yaml,yml}": "prettier --write"
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.2",
@@ -47,7 +51,6 @@
     "react-i18next": "^17.0.10"
   },
   "devDependencies": {
-    "@electron-toolkit/eslint-config-prettier": "^3.0.0",
     "@electron-toolkit/eslint-config-ts": "^3.1.0",
     "@electron-toolkit/tsconfig": "^2.0.0",
     "@types/node": "^22.20.1",
@@ -64,6 +67,8 @@
     "eslint-plugin-react-compiler": "19.1.0-rc.2",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.4.1",
     "prettier": "^3.7.4",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",

@@ -1,0 +1,24 @@
+# Normalize text files to LF in the repository, regardless of contributor platform.
+* text=auto eol=lf
+
+# Keep common binary assets out of Git's text normalization.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.icns binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.dmg binary
+*.exe binary
+*.dll binary
+*.node binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.mp3 binary
+*.mp4 binary
