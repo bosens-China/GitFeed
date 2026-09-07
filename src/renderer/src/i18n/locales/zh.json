@@ -156,7 +156,8 @@
     "removeSuccess": "已从工作台移除（本地仓库未删除）",
     "removeFailed": "移除失败",
     "switchFailed": "切换仓库失败",
-    "filterFailed": "保存筛选失败"
+    "filterFailed": "保存筛选失败",
+    "incompleteResults": "部分工程读取失败，当前统计和周报不完整。请检查后刷新。"
   },
   "commitList": {
     "noTitle": "(无标题)",
@@ -174,7 +175,7 @@
     "repository": "工程",
     "author": "作者",
     "authoredAt": "提交时间",
-    "branch": "分支",
+    "branch": "查询分支",
     "files": "{{count}} 个变更文件",
     "noFiles": "没有文件变更记录",
     "binaryFile": "二进制文件",

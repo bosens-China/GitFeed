@@ -92,6 +92,7 @@ export interface CommitItem {
   authoredAt: string
   message: string
   isMerge: boolean
+  /** 本次查询的分支范围，不表示提交仅属于其中某个分支。 */
   branch: string
   repoId?: string
   repoName?: string

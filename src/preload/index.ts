@@ -39,13 +39,15 @@ const api = {
   queryWeeklyActivity: (
     timeRange: TimeRangeState,
     overrideIncludeMerge?: boolean,
-    branchOverride?: RepositoryBranchOverride
+    branchOverride?: RepositoryBranchOverride,
+    repoId?: string
   ): Promise<MultiRepoWeeklyQueryResult> =>
     ipcRenderer.invoke(
       IpcChannels.weeklyQueryActivity,
       timeRange,
       overrideIncludeMerge,
-      branchOverride
+      branchOverride,
+      repoId
     ),
   getAppVersion: (): Promise<string> => ipcRenderer.invoke(IpcChannels.appGetVersion),
   getGitStatus: (): Promise<{ ok: boolean; version?: string; error?: string }> =>

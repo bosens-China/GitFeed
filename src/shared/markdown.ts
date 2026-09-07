@@ -117,16 +117,26 @@ export function buildCommitsMarkdown(ctx: MarkdownContext): string {
   return lines.join('\n')
 }
 
+export function commitPreviewLink(commit: CommitItem): string {
+  return `#commit/${encodeURIComponent(commit.repoId ?? commit.repoName ?? '')}/${commit.hash}`
+}
+
 export function buildCommitsWeeklyReportMarkdown(
   commits: CommitItem[],
   options: {
     title?: string
     timeRangeLabel?: string
     groupMode?: 'byRepo' | 'singleRepo'
+    linkCommits?: boolean
   } = {}
 ): string {
   if (commits.length === 0) {
     return ''
+  }
+
+  const reference = (commit: CommitItem): string => {
+    const code = `\`${commit.shortHash}\``
+    return options.linkCommits ? `[${code}](<${commitPreviewLink(commit)}>)` : code
   }
 
   const lines: string[] = []
@@ -179,7 +189,7 @@ export function buildCommitsWeeklyReportMarkdown(
         lines.push(`### ${group.label}`, '')
         for (const c of group.commits) {
           const commitTitle = escapeMarkdownInline(c.message.split('\n')[0] || '(无标题)')
-          lines.push(`- ${commitTitle} (\`${c.shortHash}\`)`)
+          lines.push(`- ${commitTitle} (${reference(c)})`)
         }
         lines.push('')
       }
@@ -197,7 +207,7 @@ export function buildCommitsWeeklyReportMarkdown(
       lines.push(`## ${group.label}`, '')
       for (const c of group.commits) {
         const commitTitle = escapeMarkdownInline(c.message.split('\n')[0] || '(无标题)')
-        lines.push(`- ${commitTitle} (\`${c.shortHash}\`)`)
+        lines.push(`- ${commitTitle} (${reference(c)})`)
       }
       lines.push('')
     }

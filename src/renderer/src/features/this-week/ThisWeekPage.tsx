@@ -15,6 +15,7 @@ import {
 import { localDateKey } from '@shared/time-range'
 import { useWeeklyActivity, useWorkbench } from '@renderer/hooks/useWorkbench'
 import { AggregatedCommitFeed } from './AggregatedCommitFeed'
+import { RepositoryQueryErrors } from './RepositoryQueryErrors'
 import { ProjectReportTab } from './ProjectReportTab'
 import { StatsHeader } from './StatsHeader'
 import { ThisWeekFilterBar } from './ThisWeekFilterBar'
@@ -88,7 +89,8 @@ export function ThisWeekPage({
   } = useWeeklyActivity(
     timeRange,
     undefined,
-    currentRepo && analysisBranch ? { repoId: currentRepo.id, branch: analysisBranch } : undefined
+    currentRepo && analysisBranch ? { repoId: currentRepo.id, branch: analysisBranch } : undefined,
+    selectedRepoId ?? undefined
   )
 
   const availableAuthors = useMemo((): AuthorIdentity[] => {
@@ -246,7 +248,7 @@ export function ThisWeekPage({
       />
 
       <div className="min-h-0 flex-1 overflow-auto p-4 md:p-6">
-        {enabledRepos.length === 0 ? (
+        {!selectedRepoId && enabledRepos.length === 0 ? (
           <Empty
             className="mt-16"
             description={t('thisWeek.noEnabledRepos', {
@@ -261,6 +263,7 @@ export function ThisWeekPage({
           </Empty>
         ) : (
           <>
+            <RepositoryQueryErrors repos={activityData?.repos} />
             {error && (
               <Alert
                 type="error"

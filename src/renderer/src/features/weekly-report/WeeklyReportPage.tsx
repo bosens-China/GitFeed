@@ -31,6 +31,7 @@ import { customDayBounds, localDateKey } from '@shared/time-range'
 import { useWeeklyActivity, useWorkbench } from '@renderer/hooks/useWorkbench'
 import { WeeklyChangesFeed } from './WeeklyChangesFeed'
 import { StatsHeader } from '../this-week/StatsHeader'
+import { RepositoryQueryErrors } from '../this-week/RepositoryQueryErrors'
 import { MarkdownReportPreview } from '../this-week/MarkdownReportPreview'
 import { ClosingMultiSelect } from '@renderer/components/ClosingMultiSelect'
 
@@ -285,6 +286,7 @@ export function WeeklyReportPage({
           </Empty>
         ) : (
           <>
+            <RepositoryQueryErrors repos={activityData?.repos} />
             {error && (
               <Alert
                 type="error"
@@ -343,7 +345,12 @@ export function WeeklyReportPage({
                       >
                         <div className="min-h-[360px] rounded border border-[var(--ant-color-border-secondary)] bg-[var(--ant-color-bg-container)]">
                           <MarkdownReportPreview
-                            markdown={markdownText}
+                            markdown={buildCommitsWeeklyReportMarkdown(filteredCommits, {
+                              title: '全仓工作周报',
+                              timeRangeLabel: activityData?.timeRange.label,
+                              groupMode: 'byRepo',
+                              linkCommits: true
+                            })}
                             commits={filteredCommits}
                             emptyDescription={t('weeklyReport.emptyMarkdown', {
                               defaultValue: '暂无周报内容'

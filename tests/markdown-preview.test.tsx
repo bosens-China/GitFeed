@@ -2,6 +2,7 @@ import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { describe, expect, it, vi } from 'vitest'
+import { buildCommitsWeeklyReportMarkdown } from '../src/shared/markdown'
 import type { CommitItem } from '../src/shared/models'
 import { CursorTooltipProvider } from '../src/renderer/src/components/CursorTooltip'
 import { MarkdownReportPreview } from '../src/renderer/src/features/this-week/MarkdownReportPreview'
@@ -36,7 +37,10 @@ describe('MarkdownReportPreview', () => {
           CursorTooltipProvider,
           null,
           createElement(MarkdownReportPreview, {
-            markdown: '## energy\\_system\n\n- feat\\(web\\): support (`a10cb4a`)',
+            markdown: buildCommitsWeeklyReportMarkdown([commit], {
+              groupMode: 'byRepo',
+              linkCommits: true
+            }),
             commits: [commit]
           })
         )

@@ -71,7 +71,7 @@ export async function listCommitsInRange(options: {
           authoredAt: raw.authoredAt,
           message: raw.message.replace(/\r\n/g, '\n').replace(/\s+$/u, ''),
           isMerge: raw.parents.length > 1,
-          branch: targetBranches.length === 1 ? targetBranches[0] : branch || targetBranches[0],
+          branch: targetBranches.join(', '),
           repoId,
           repoName,
           files
@@ -158,9 +158,13 @@ async function listCommitFiles(repoPath: string, hash: string): Promise<FileChan
     '--format=',
     '--raw',
     '--numstat',
+    '-z',
+    '--no-ext-diff',
+    '--no-textconv',
     '-M',
     '--diff-merges=first-parent',
-    hash
+    hash,
+    '--'
   ]
 
   let stdout = ''
@@ -174,8 +178,12 @@ async function listCommitFiles(repoPath: string, hash: string): Promise<FileChan
       '--format=',
       '--raw',
       '--numstat',
+      '-z',
+      '--no-ext-diff',
+      '--no-textconv',
       '-M',
-      hash
+      hash,
+      '--'
     ]))
   }
 
@@ -183,68 +191,42 @@ async function listCommitFiles(repoPath: string, hash: string): Promise<FileChan
 }
 
 function parseNameStatusAndNumstat(output: string): FileChange[] {
-  const lines = output.split(/\r?\n/).filter((line) => line.length > 0)
+  const records = output.split('\u0000')
   const statusMap = new Map<string, { status: FileChangeStatus; previousPath?: string }>()
   const statMap = new Map<
     string,
     { additions: number | null; deletions: number | null; binary: boolean }
   >()
 
-  for (const line of lines) {
-    if (line.startsWith(':')) {
-      const parts = line.split('\t')
-      const statusToken = parts[0].trim().split(/\s+/).at(-1) ?? 'M'
-      const status = statusToken[0] as FileChangeStatus
+  // -z 将路径独立编码，避免把文件名中的制表符、换行或 => 当作分隔符。
+  for (let index = 0; index < records.length; index += 1) {
+    const record = records[index].replace(/^\n+/, '')
+    if (record.startsWith(':')) {
+      const status = record.trim().split(/\s+/).at(-1)?.[0] as FileChangeStatus
+      const firstPath = records[++index]
       if (status === 'R' || status === 'C') {
-        statusMap.set(parts[2], { status, previousPath: parts[1] })
+        statusMap.set(records[++index], { status, previousPath: firstPath })
       } else {
-        statusMap.set(parts[1], { status })
+        statusMap.set(firstPath, { status })
       }
       continue
     }
 
-    if (/^[AMDCRTUX]\d*\t/.test(line) || /^R\d*\t/.test(line) || /^C\d*\t/.test(line)) {
-      const parts = line.split('\t')
-      const statusToken = parts[0]
-      const status = statusToken[0] as FileChangeStatus
-      if (status === 'R' || status === 'C') {
-        const previousPath = parts[1]
-        const pathName = parts[2]
-        statusMap.set(pathName, { status, previousPath })
-      } else {
-        statusMap.set(parts[1], { status })
-      }
-      continue
+    const numstat = record.match(/^(\d+|-)\t(\d+|-)\t([\s\S]*)$/)
+    if (!numstat) continue
+    const [, addRaw, delRaw, pathRaw] = numstat
+    let filePath = pathRaw
+    if (!filePath) {
+      // 重命名的 numstat 路径为空，后面两个 NUL 字段分别是旧、新路径。
+      index += 1
+      filePath = records[++index]
     }
-
-    const numstat = line.match(/^(\d+|-)\t(\d+|-)\t(.+)$/)
-    if (numstat) {
-      const [, addRaw, delRaw, pathRaw] = numstat
-      let filePath = pathRaw
-      let previousPath: string | undefined
-      const renameMatch = pathRaw.match(/^(.*) => (.*)$/) || pathRaw.match(/^\{(.*) => (.*)\}$/)
-      if (pathRaw.includes('=>')) {
-        // formats: "old => new" or "{old => new}/tail"
-        const brace = pathRaw.match(/^(.*)\{(.*) => (.*)\}(.*)$/)
-        if (brace) {
-          previousPath = `${brace[1]}${brace[2]}${brace[4]}`
-          filePath = `${brace[1]}${brace[3]}${brace[4]}`
-        } else if (renameMatch) {
-          previousPath = renameMatch[1]
-          filePath = renameMatch[2]
-        }
-      }
-
-      const binary = addRaw === '-' || delRaw === '-'
-      statMap.set(filePath, {
-        additions: binary ? null : Number(addRaw),
-        deletions: binary ? null : Number(delRaw),
-        binary
-      })
-      if (previousPath && !statusMap.has(filePath)) {
-        statusMap.set(filePath, { status: 'R', previousPath })
-      }
-    }
+    const binary = addRaw === '-' || delRaw === '-'
+    statMap.set(filePath, {
+      additions: binary ? null : Number(addRaw),
+      deletions: binary ? null : Number(delRaw),
+      binary
+    })
   }
 
   const paths = new Set([...statusMap.keys(), ...statMap.keys()])

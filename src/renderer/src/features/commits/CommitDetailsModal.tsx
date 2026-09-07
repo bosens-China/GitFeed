@@ -278,7 +278,7 @@ export function CommitDetailsModal({
                       },
                       {
                         key: 'branch',
-                        label: t('commitDetails.branch', { defaultValue: '分支' }),
+                        label: t('commitDetails.branch', { defaultValue: '查询分支' }),
                         children: (
                           <Space size={8} wrap>
                             <Tag

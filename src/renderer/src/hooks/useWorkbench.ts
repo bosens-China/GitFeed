@@ -16,14 +16,16 @@ export const workbenchKey = ['workbench'] as const
 export const weeklyActivityKey = (
   timeRange: TimeRangeState,
   includeMerge?: boolean,
-  branchOverride?: RepositoryBranchOverride
+  branchOverride?: RepositoryBranchOverride,
+  repoId?: string
 ) =>
   [
     'weekly-activity',
     timeRange,
     includeMerge,
     branchOverride?.repoId,
-    branchOverride?.branch
+    branchOverride?.branch,
+    repoId
   ] as const
 
 function localizeMainProcessError(
@@ -156,7 +158,8 @@ export function useWorkbench(): {
 export function useWeeklyActivity(
   timeRange: TimeRangeState,
   overrideIncludeMerge?: boolean,
-  branchOverride?: RepositoryBranchOverride
+  branchOverride?: RepositoryBranchOverride,
+  repoId?: string
 ): {
   data: MultiRepoWeeklyQueryResult | undefined
   isFetching: boolean
@@ -165,8 +168,9 @@ export function useWeeklyActivity(
   error: Error | null
 } {
   const query = useQuery({
-    queryKey: weeklyActivityKey(timeRange, overrideIncludeMerge, branchOverride),
-    queryFn: () => window.api.queryWeeklyActivity(timeRange, overrideIncludeMerge, branchOverride),
+    queryKey: weeklyActivityKey(timeRange, overrideIncludeMerge, branchOverride, repoId),
+    queryFn: () =>
+      window.api.queryWeeklyActivity(timeRange, overrideIncludeMerge, branchOverride, repoId),
     staleTime: 5000
   })
 

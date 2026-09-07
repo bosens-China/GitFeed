@@ -156,7 +156,8 @@
     "removeSuccess": "Removed from workbench (local repository not deleted)",
     "removeFailed": "Failed to remove",
     "switchFailed": "Failed to switch repository",
-    "filterFailed": "Failed to save filters"
+    "filterFailed": "Failed to save filters",
+    "incompleteResults": "Some repositories could not be read. Statistics and the report are incomplete. Check the errors and refresh."
   },
   "commitList": {
     "noTitle": "(No title)",
@@ -174,7 +175,7 @@
     "repository": "Project",
     "author": "Author",
     "authoredAt": "Authored at",
-    "branch": "Branch",
+    "branch": "Query branches",
     "files": "{{count}} changed files",
     "noFiles": "No file changes recorded",
     "binaryFile": "Binary file",

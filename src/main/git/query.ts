@@ -225,8 +225,9 @@ export async function queryMultiRepoCommits(options: {
   timeRangeState: TimeRangeState
   includeMerge: boolean
   branchOverride?: RepositoryBranchOverride
+  repoId?: string
 }): Promise<MultiRepoWeeklyQueryResult> {
-  const { repos, myIdentities, timeRangeState, includeMerge, branchOverride } = options
+  const { repos, myIdentities, timeRangeState, includeMerge, branchOverride, repoId } = options
   const timeRange = resolveTimeRange(timeRangeState)
   const endExclusive = timeRangeState.preset !== 'custom'
   const rangeEnd = endExclusive ? new Date(timeRange.end.getTime() - 1) : timeRange.end
@@ -240,7 +241,7 @@ export async function queryMultiRepoCommits(options: {
   let totalDeletions = 0
 
   for (const repo of repos) {
-    if (!repo.enabledForReport) {
+    if (repoId ? repo.id !== repoId : !repo.enabledForReport) {
       continue
     }
 

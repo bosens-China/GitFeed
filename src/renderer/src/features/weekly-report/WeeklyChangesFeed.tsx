@@ -193,6 +193,7 @@ export function WeeklyChangesFeed({ commits }: WeeklyChangesFeedProps): React.JS
                                 className="m-0 flex items-center gap-1 text-[11px] font-mono text-[var(--ant-color-text-secondary)]"
                               >
                                 <GitBranch size={11} />
+                                {t('commitDetails.branch', { defaultValue: '查询分支' })}：
                                 {commit.branch}
                               </Tag>
 

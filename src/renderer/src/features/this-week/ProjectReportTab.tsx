@@ -68,7 +68,12 @@ export function ProjectReportTab({
     >
       <div className="min-h-[360px] rounded border border-[var(--ant-color-border-secondary)] bg-[var(--ant-color-bg-container)]">
         <MarkdownReportPreview
-          markdown={markdownText}
+          markdown={buildCommitsWeeklyReportMarkdown(commits, {
+            title: `${repoName} 工作周报`,
+            timeRangeLabel,
+            groupMode: 'singleRepo',
+            linkCommits: true
+          })}
           commits={commits}
           emptyDescription={t('thisWeek.noCommits', { defaultValue: '当前筛选范围内无提交记录' })}
         />

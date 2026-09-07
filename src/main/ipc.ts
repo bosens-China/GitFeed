@@ -335,7 +335,8 @@ export function registerIpcHandlers(): void {
     async (
       timeRangeState: unknown,
       overrideIncludeMerge?: unknown,
-      branchOverride?: unknown
+      branchOverride?: unknown,
+      repoId?: unknown
     ): Promise<MultiRepoWeeklyQueryResult> => {
       if (overrideIncludeMerge !== undefined && typeof overrideIncludeMerge !== 'boolean') {
         throw new Error('Merge 查询参数无效')
@@ -343,6 +344,10 @@ export function registerIpcHandlers(): void {
       const state = await readWorkbenchState()
       const includeMerge =
         typeof overrideIncludeMerge === 'boolean' ? overrideIncludeMerge : state.includeMergeDefault
+      const parsedRepoId = repoId === undefined ? undefined : parseString(repoId, '工程标识')
+      if (parsedRepoId && !state.repositories.some((repo) => repo.id === parsedRepoId)) {
+        throw new Error('工程不存在')
+      }
       const parsedBranchOverride = parseBranchOverride(branchOverride)
       if (
         parsedBranchOverride &&
@@ -355,7 +360,8 @@ export function registerIpcHandlers(): void {
         myIdentities: state.myIdentities,
         timeRangeState: parseTimeRange(timeRangeState),
         includeMerge,
-        branchOverride: parsedBranchOverride
+        branchOverride: parsedBranchOverride,
+        repoId: parsedRepoId
       })
     }
   )

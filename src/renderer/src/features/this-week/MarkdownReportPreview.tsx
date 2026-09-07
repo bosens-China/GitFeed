@@ -4,6 +4,7 @@ import dayjs from 'dayjs'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import { useTranslation } from 'react-i18next'
 import type { CommitItem } from '@shared/models'
+import { commitPreviewLink } from '@shared/markdown'
 import { CursorTooltip } from '@renderer/components/CursorTooltip'
 import { CommitDetailsModal } from '../commits/CommitDetailsModal'
 
@@ -13,11 +14,19 @@ interface MarkdownReportPreviewProps {
   emptyDescription?: string
 }
 
-function reactNodeText(node: ReactNode): string {
-  if (typeof node === 'string' || typeof node === 'number') return String(node)
-  if (!node) return ''
-  if (isValidElement<{ children?: ReactNode }>(node)) return reactNodeText(node.props.children)
-  return Children.toArray(node).map(reactNodeText).join('')
+function findLinkedCommit(
+  node: ReactNode,
+  commits: Map<string, CommitItem>
+): CommitItem | undefined {
+  if (!node || typeof node === 'string' || typeof node === 'number') return undefined
+  if (isValidElement<{ href?: string; children?: ReactNode }>(node)) {
+    return commits.get(node.props.href ?? '') ?? findLinkedCommit(node.props.children, commits)
+  }
+  for (const child of Children.toArray(node)) {
+    const commit = findLinkedCommit(child, commits)
+    if (commit) return commit
+  }
+  return undefined
 }
 
 export function MarkdownReportPreview({
@@ -27,14 +36,10 @@ export function MarkdownReportPreview({
 }: MarkdownReportPreviewProps): React.JSX.Element {
   const { t } = useTranslation()
   const [selectedCommit, setSelectedCommit] = useState<CommitItem | null>(null)
-  const commitsByHash = useMemo(() => {
-    const result = new Map<string, CommitItem>()
-    for (const commit of commits) {
-      result.set(commit.hash, commit)
-      result.set(commit.shortHash, commit)
-    }
-    return result
-  }, [commits])
+  const commitsByLink = useMemo(
+    () => new Map(commits.map((commit) => [commitPreviewLink(commit), commit])),
+    [commits]
+  )
 
   if (!markdown.trim()) {
     return (
@@ -69,8 +74,7 @@ export function MarkdownReportPreview({
     ),
     ul: ({ children }) => <ul className="my-2 pl-5">{children}</ul>,
     li: ({ children }) => {
-      const text = reactNodeText(children)
-      const commit = commits.find((item) => text.includes(item.shortHash))
+      const commit = findLinkedCommit(children, commitsByLink)
       const item = (
         <li className="my-1 -mx-2 rounded-md px-2 py-1 list-disc text-sm text-[var(--ant-color-text)] border border-transparent hover:border-[var(--ant-color-border-secondary)] hover:bg-[var(--ant-color-fill-secondary)] transition-all duration-150 cursor-default">
           {children}
@@ -90,10 +94,8 @@ export function MarkdownReportPreview({
         {children}
       </pre>
     ),
-    code: ({ children, className }) => {
-      const rawValue = String(children)
-      const value = rawValue.replace(/\n$/u, '')
-      const commit = rawValue.includes('\n') ? undefined : commitsByHash.get(value)
+    a: ({ children, href }) => {
+      const commit = commitsByLink.get(href ?? '')
 
       if (commit) {
         return (
@@ -109,20 +111,21 @@ export function MarkdownReportPreview({
               className="mx-0.5 !h-auto !bg-[var(--ant-color-fill-secondary)] !px-1.5 !py-0.5 font-mono text-xs"
               onClick={() => setSelectedCommit(commit)}
             >
-              {value}
+              {commit.shortHash}
             </Button>
           </Tooltip>
         )
       }
 
-      return (
-        <code
-          className={`${className ?? ''} rounded bg-[var(--ant-color-fill-secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--ant-color-primary)]`}
-        >
-          {children}
-        </code>
-      )
-    }
+      return <a href={href}>{children}</a>
+    },
+    code: ({ children, className }) => (
+      <code
+        className={`${className ?? ''} rounded bg-[var(--ant-color-fill-secondary)] px-1.5 py-0.5 font-mono text-xs text-[var(--ant-color-primary)]`}
+      >
+        {children}
+      </code>
+    )
   }
 
   return (
