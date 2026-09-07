@@ -36,15 +36,12 @@
     "*.{cjs,css,html,js,json,jsonc,jsx,md,mdx,mjs,scss,ts,tsx,yaml,yml}": "prettier --write"
   },
   "dependencies": {
-    "@ant-design/icons": "^6.3.2",
     "@electron-toolkit/utils": "^4.0.0",
     "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-router": "^1.170.32",
-    "@tanstack/react-virtual": "^3.14.6",
     "ahooks": "^3.9.7",
     "antd": "^6.5.1",
     "dayjs": "^1.11.21",
-    "es-toolkit": "^1.49.0",
     "execa": "8.0.1",
     "i18next": "^26.3.6",
     "lucide-react": "^1.25.0",
