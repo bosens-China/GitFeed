@@ -250,7 +250,7 @@ export function WelcomePage({
                         <GitBranch size={12} />
                         {repo.selectedBranches?.length
                           ? repo.selectedBranches.join(', ')
-                          : repo.filters.branch || 'main'}
+                          : t('filterBar.defaultBranch', { defaultValue: '默认分支' })}
                       </Tag>
                     </div>
                   </div>

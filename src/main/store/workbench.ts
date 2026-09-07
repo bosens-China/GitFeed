@@ -2,10 +2,8 @@ import fs from 'node:fs/promises'
 import path from 'node:path'
 import { app } from 'electron'
 import {
-  createDefaultFilters,
   type AuthorIdentity,
   type ProjectViewMemory,
-  type RepositoryFilters,
   type RepositoryRecord,
   type RepositoryUpdate,
   type WorkbenchState
@@ -57,7 +55,12 @@ export async function readWorkbenchState(): Promise<WorkbenchState> {
 }
 
 function normalizeRepository(
-  repo: Partial<RepositoryRecord> & { id: string; path: string; name: string }
+  repo: Partial<RepositoryRecord> & {
+    id: string
+    path: string
+    name: string
+    filters?: { branch?: string | null }
+  }
 ): RepositoryRecord {
   const defaultBranch = repo.filters?.branch ?? null
   const selectedBranches = Array.isArray(repo.selectedBranches)
@@ -78,13 +81,6 @@ function normalizeRepository(
     status: repo.status ?? 'available',
     lastCheckedAt: repo.lastCheckedAt,
     errorMessage: repo.errorMessage,
-    filters: {
-      ...createDefaultFilters(),
-      ...repo.filters,
-      branch: defaultBranch,
-      authors: repo.filters?.authors ?? { mode: 'all' },
-      timeRange: repo.filters?.timeRange ?? { preset: 'thisWeek' }
-    },
     viewMemory: normalizeProjectViewMemory(repo.viewMemory)
   }
 }
@@ -213,19 +209,6 @@ export async function setActiveRepository(id: string | null): Promise<WorkbenchS
   })
 }
 
-export async function updateRepositoryFilters(
-  id: string,
-  filters: RepositoryFilters
-): Promise<WorkbenchState> {
-  return mutateWorkbenchState((state) => {
-    const repo = state.repositories.find((item) => item.id === id)
-    if (!repo) {
-      throw new Error('仓库不存在')
-    }
-    repo.filters = filters
-  })
-}
-
 export async function updateProjectViewMemory(
   id: string,
   viewMemory: ProjectViewMemory
@@ -234,21 +217,5 @@ export async function updateProjectViewMemory(
     const repo = state.repositories.find((item) => item.id === id)
     if (!repo) throw new Error('仓库不存在')
     repo.viewMemory = viewMemory
-  })
-}
-
-export async function reconcileRepositoryFilters(
-  id: string,
-  expected: RepositoryFilters,
-  filters: RepositoryFilters
-): Promise<WorkbenchState> {
-  return mutateWorkbenchState((state) => {
-    const repo = state.repositories.find((item) => item.id === id)
-    if (!repo) {
-      throw new Error('仓库不存在')
-    }
-    if (JSON.stringify(repo.filters) === JSON.stringify(expected)) {
-      repo.filters = filters
-    }
   })
 }

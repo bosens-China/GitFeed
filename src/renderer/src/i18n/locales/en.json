@@ -43,6 +43,7 @@
     "backToOverview": "Back to Overview"
   },
   "thisWeek": {
+    "currentRepo": "Current project",
     "allRepos": "All Tracked Repos",
     "searchPlaceholder": "Search commit messages…",
     "copyCommitDetails": "Copy Commit Details (Markdown)",

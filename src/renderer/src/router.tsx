@@ -321,14 +321,7 @@ const projectRoute = createRoute({
   path: '/project/$repoId',
   component: function ProjectComponent() {
     const { repoId } = useParams({ from: '/project/$repoId' })
-    const navigate = useNavigate()
-    return (
-      <ThisWeekPage
-        key={repoId}
-        selectedRepoId={repoId}
-        onNavigateToSettings={() => void navigate({ to: '/settings' })}
-      />
-    )
+    return <ThisWeekPage key={repoId} selectedRepoId={repoId} />
   }
 })
 

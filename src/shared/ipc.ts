@@ -8,7 +8,6 @@ export const IpcChannels = {
   workbenchUpdateIdentities: 'workbench:updateIdentities',
   workbenchUpdatePreferences: 'workbench:updatePreferences',
   workbenchDiscoverAuthors: 'workbench:discoverAuthors',
-  repositoryQuery: 'repository:query',
   repositoryCheckStatus: 'repository:checkStatus',
   repositoryCommitDiff: 'repository:commitDiff',
   weeklyQueryActivity: 'weekly:queryActivity',

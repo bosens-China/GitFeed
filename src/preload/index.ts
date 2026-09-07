@@ -6,7 +6,6 @@ import type {
   MultiRepoWeeklyQueryResult,
   ProjectViewMemory,
   RepositoryBranchOverride,
-  RepositoryQueryResult,
   RepositoryUpdate,
   TimeRangeState,
   WorkbenchState
@@ -31,8 +30,6 @@ const api = {
     ipcRenderer.invoke(IpcChannels.workbenchUpdatePreferences, includeMergeDefault),
   discoverAuthors: (): Promise<AuthorIdentity[]> =>
     ipcRenderer.invoke(IpcChannels.workbenchDiscoverAuthors),
-  queryRepository: (id: string): Promise<RepositoryQueryResult> =>
-    ipcRenderer.invoke(IpcChannels.repositoryQuery, id),
   checkRepoStatus: (id: string) => ipcRenderer.invoke(IpcChannels.repositoryCheckStatus, id),
   getCommitDiff: (id: string, hash: string): Promise<CommitDiffResult> =>
     ipcRenderer.invoke(IpcChannels.repositoryCommitDiff, id, hash),

@@ -1,7 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, type IpcMainInvokeEvent } from 'electron'
 import { IpcChannels, type IpcChannel } from '@shared/ipc'
 import {
-  createDefaultFilters,
   type AuthorIdentity,
   type MultiRepoWeeklyQueryResult,
   type ProjectViewMemory,
@@ -12,12 +11,7 @@ import {
   type WorkbenchState
 } from '@shared/models'
 import { getCommitDiff } from './git/commits'
-import {
-  diagnoseRepository,
-  discoverRepoAuthors,
-  queryMultiRepoCommits,
-  queryRepository
-} from './git/query'
+import { diagnoseRepository, discoverRepoAuthors, queryMultiRepoCommits } from './git/query'
 import { GitCommandError, runGit } from './git/run'
 import { assertGitRepository, repositoryDisplayName, resolveBranchFallback } from './git/repository'
 import { checkForUpdates } from './update'
@@ -226,11 +220,7 @@ export function registerIpcHandlers(): void {
         selectedBranches: defaultBranch ? [defaultBranch] : [],
         availableBranches: diagnosis.branches,
         status: diagnosis.status,
-        lastCheckedAt: new Date().toISOString(),
-        filters: {
-          ...createDefaultFilters(),
-          branch: defaultBranch
-        }
+        lastCheckedAt: new Date().toISOString()
       })
     } catch (error) {
       if (error instanceof GitCommandError) throw new Error(error.message)
@@ -290,16 +280,6 @@ export function registerIpcHandlers(): void {
       }
     }
     return Array.from(allAuthorsMap.values()).sort((a, b) => a.name.localeCompare(b.name))
-  })
-
-  registerHandler(IpcChannels.repositoryQuery, async (id: unknown) => {
-    const parsedId = parseString(id, '工程标识')
-    const state = await readWorkbenchState()
-    const repo = state.repositories.find((item) => item.id === parsedId)
-    if (!repo) {
-      return { ok: false as const, code: 'UNKNOWN' as const, error: '仓库不存在' }
-    }
-    return queryRepository(repo.path, repo.filters)
   })
 
   registerHandler(IpcChannels.repositoryCheckStatus, async (id: unknown) => {

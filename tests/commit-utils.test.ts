@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  collectAuthors,
-  computeStats,
-  filterCommitsByAuthors,
-  reconcileAuthorsFilter
-} from '../src/shared/commit-utils'
+import { collectAuthors, computeStats } from '../src/shared/commit-utils'
 import { matchesAnyIdentity, matchesIdentity, type CommitItem } from '../src/shared/models'
 
 function commit(partial: Partial<CommitItem> & Pick<CommitItem, 'hash'>): CommitItem {
@@ -59,6 +54,8 @@ describe('commit-utils', () => {
 
     expect(stats).toEqual({
       commitCount: 2,
+      activeRepoCount: 0,
+      activeDayCount: 1,
       additions: 5,
       deletions: 1,
       changedFiles: 2
@@ -86,6 +83,37 @@ describe('commit-utils', () => {
     expect(stats.deletions).toBe(1)
   })
 
+  it('counts identical paths separately across repositories and days in local time', () => {
+    const file = { path: 'README.md', status: 'M', additions: 2, deletions: 1, binary: false }
+    const firstDay = new Date(2026, 8, 1, 0, 1).toISOString()
+    const nextDay = new Date(2026, 8, 2, 0, 1).toISOString()
+    expect(
+      computeStats([
+        commit({ hash: '1', repoId: 'a', authoredAt: firstDay, files: [file] }),
+        commit({ hash: '2', repoId: 'a', authoredAt: firstDay, files: [file] }),
+        commit({ hash: '1', repoId: 'b', authoredAt: nextDay, files: [file] })
+      ])
+    ).toEqual({
+      commitCount: 3,
+      activeRepoCount: 2,
+      activeDayCount: 2,
+      additions: 6,
+      deletions: 3,
+      changedFiles: 2
+    })
+  })
+
+  it('returns zero statistics for an empty selection', () => {
+    expect(computeStats([])).toEqual({
+      commitCount: 0,
+      activeRepoCount: 0,
+      activeDayCount: 0,
+      additions: 0,
+      deletions: 0,
+      changedFiles: 0
+    })
+  })
+
   it('collects unique authors sorted by name/email', () => {
     const authors = collectAuthors([
       commit({ hash: '1', authorName: 'Bob', authorEmail: 'b@x.com' }),
@@ -96,41 +124,6 @@ describe('commit-utils', () => {
       { name: 'Ann', email: 'a@x.com' },
       { name: 'Bob', email: 'b@x.com' }
     ])
-  })
-
-  it('clears author selection when any selected author disappears', () => {
-    const result = reconcileAuthorsFilter(
-      {
-        mode: 'selected',
-        authors: [
-          { name: 'Ann', email: 'a@x.com' },
-          { name: 'Bob', email: 'b@x.com' }
-        ]
-      },
-      [{ name: 'Ann', email: 'a@x.com' }]
-    )
-    expect(result).toEqual({ mode: 'selected', authors: [] })
-  })
-
-  it('keeps all mode unchanged during reconcile', () => {
-    expect(reconcileAuthorsFilter({ mode: 'all' }, [{ name: 'Ann', email: 'a@x.com' }])).toEqual({
-      mode: 'all'
-    })
-  })
-
-  it('filters commits by selected authors and empty selection', () => {
-    const commits = [
-      commit({ hash: '1', authorName: 'Ann', authorEmail: 'a@x.com' }),
-      commit({ hash: '2', authorName: 'Bob', authorEmail: 'b@x.com' })
-    ]
-    expect(filterCommitsByAuthors(commits, { mode: 'all' })).toHaveLength(2)
-    expect(
-      filterCommitsByAuthors(commits, {
-        mode: 'selected',
-        authors: [{ name: 'Bob', email: 'b@x.com' }]
-      })
-    ).toEqual([commits[1]])
-    expect(filterCommitsByAuthors(commits, { mode: 'selected', authors: [] })).toEqual([])
   })
 
   it('matches identity with case-insensitive email', () => {

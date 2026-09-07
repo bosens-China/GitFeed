@@ -11,9 +11,7 @@ const CONFIGURED_BRANCHES_VALUE = '\u0000configured-branches'
 interface ThisWeekFilterBarProps {
   timeRange: TimeRangeState
   onTimeRangeChange: (next: TimeRangeState) => void
-  repositories: RepositoryRecord[]
-  selectedRepoIds: string[]
-  onSelectedRepoIdsChange: (ids: string[]) => void
+  currentRepo?: RepositoryRecord
   searchKeyword: string
   onSearchKeywordChange: (kw: string) => void
   authorOptions: { label: string; value: string }[]
@@ -28,9 +26,7 @@ interface ThisWeekFilterBarProps {
 export function ThisWeekFilterBar({
   timeRange,
   onTimeRangeChange,
-  repositories,
-  selectedRepoIds,
-  onSelectedRepoIdsChange,
+  currentRepo,
   searchKeyword,
   onSearchKeywordChange,
   authorOptions,
@@ -42,9 +38,6 @@ export function ThisWeekFilterBar({
   onRefresh
 }: ThisWeekFilterBarProps): React.JSX.Element {
   const { t } = useTranslation()
-
-  const currentRepo =
-    selectedRepoIds.length === 1 ? repositories.find((r) => r.id === selectedRepoIds[0]) : null
 
   const timeRangeOptions = [
     { label: t('filterBar.thisWeek', { defaultValue: '本周' }), value: 'thisWeek' },
@@ -58,22 +51,9 @@ export function ThisWeekFilterBar({
       ? [dayjs(timeRange.customStart), dayjs(timeRange.customEnd)]
       : null
 
-  const repoOptions = repositories
-    .filter((r) => r.enabledForReport)
-    .map((r) => ({
-      label: r.name,
-      value: r.id
-    }))
-
   const configuredBranches = currentRepo?.selectedBranches ?? []
   const availableBranches = currentRepo?.availableBranches ?? []
-  const allBranches = Array.from(
-    new Set([
-      ...configuredBranches,
-      ...availableBranches,
-      ...(currentRepo?.filters.branch ? [currentRepo.filters.branch] : [])
-    ])
-  )
+  const allBranches = Array.from(new Set([...configuredBranches, ...availableBranches]))
   const otherBranches = allBranches.filter((b) => !configuredBranches.includes(b))
 
   // 构建分支下拉选项（分组展示，清晰呈现已追踪分支与其它分支）
@@ -282,7 +262,7 @@ export function ThisWeekFilterBar({
             <div className="flex items-center gap-2.5">
               <FolderGit2 size={18} className="text-[var(--ant-color-primary)] shrink-0" />
               <span className="text-base font-semibold text-[var(--ant-color-text)]">
-                {t('thisWeek.allRepos', { defaultValue: '全部参与工程' })}
+                {t('thisWeek.currentRepo', { defaultValue: '当前工程' })}
               </span>
             </div>
           )}
@@ -338,18 +318,6 @@ export function ThisWeekFilterBar({
                   customEnd: bounds.end.toISOString()
                 })
               }}
-            />
-          ) : null}
-
-          {!currentRepo && repoOptions.length > 0 ? (
-            <ClosingMultiSelect
-              allowClear
-              maxTagCount="responsive"
-              className="min-w-48 max-w-72"
-              placeholder={t('thisWeek.allRepos', { defaultValue: '全部参与工程' })}
-              value={selectedRepoIds}
-              options={repoOptions}
-              onChange={onSelectedRepoIdsChange}
             />
           ) : null}
         </Space>

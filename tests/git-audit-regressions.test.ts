@@ -5,7 +5,7 @@ import { execa } from 'execa'
 import { afterEach, beforeEach, expect, it } from 'vitest'
 import { listCommitsInRange } from '../src/main/git/commits'
 import { queryMultiRepoCommits } from '../src/main/git/query'
-import { createDefaultFilters, type CommitItem, type RepositoryRecord } from '../src/shared/models'
+import { type CommitItem, type RepositoryRecord } from '../src/shared/models'
 
 let repoPath: string
 const git = async (...args: string[]): Promise<string> =>
@@ -28,8 +28,7 @@ const record = (): RepositoryRecord => ({
   name: 'Repo',
   path: repoPath,
   enabledForReport: false,
-  selectedBranches: ['main'],
-  filters: createDefaultFilters()
+  selectedBranches: ['main']
 })
 
 beforeEach(async () => {

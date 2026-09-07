@@ -1,20 +1,20 @@
-import type {
-  AuthorIdentity,
-  CommitItem,
-  CommitStats,
-  RepositoryFilters,
-  RepositoryQueryResult
-} from './models'
+import type { AuthorIdentity, CommitItem, ActivityStats } from './models'
 import { authorKey } from './models'
+import { localDateKey } from './time-range'
 
-export function computeStats(commits: CommitItem[]): CommitStats {
+export function computeStats(commits: CommitItem[]): ActivityStats {
   const paths = new Set<string>()
+  const repos = new Set<string>()
+  const days = new Set<string>()
   let additions = 0
   let deletions = 0
 
   for (const commit of commits) {
+    const repo = commit.repoId ?? commit.repoName ?? ''
+    if (repo) repos.add(repo)
+    days.add(localDateKey(commit.authoredAt))
     for (const file of commit.files) {
-      paths.add(file.path)
+      paths.add(`${repo}\u0000${file.path}`)
       if (!file.binary) {
         additions += file.additions ?? 0
         deletions += file.deletions ?? 0
@@ -24,6 +24,8 @@ export function computeStats(commits: CommitItem[]): CommitStats {
 
   return {
     commitCount: commits.length,
+    activeRepoCount: repos.size,
+    activeDayCount: days.size,
     additions,
     deletions,
     changedFiles: paths.size
@@ -39,47 +41,4 @@ export function collectAuthors(commits: CommitItem[]): AuthorIdentity[] {
   return [...map.values()].sort((a, b) =>
     a.name === b.name ? a.email.localeCompare(b.email) : a.name.localeCompare(b.name)
   )
-}
-
-export function reconcileAuthorsFilter(
-  filter: RepositoryFilters['authors'],
-  available: AuthorIdentity[]
-): RepositoryFilters['authors'] {
-  if (filter.mode === 'all') {
-    return { mode: 'all' }
-  }
-
-  const availableKeys = new Set(available.map(authorKey))
-  const stillValid = filter.authors.filter((author) => availableKeys.has(authorKey(author)))
-
-  if (stillValid.length !== filter.authors.length) {
-    // 存在失效作者：整表置空
-    return { mode: 'selected', authors: [] }
-  }
-
-  return { mode: 'selected', authors: stillValid }
-}
-
-export function filterCommitsByAuthors(
-  commits: CommitItem[],
-  authors: RepositoryFilters['authors']
-): CommitItem[] {
-  if (authors.mode === 'all') {
-    return commits
-  }
-  if (authors.authors.length === 0) {
-    return []
-  }
-  const selected = new Set(authors.authors.map(authorKey))
-  return commits.filter((commit) =>
-    selected.has(authorKey({ name: commit.authorName, email: commit.authorEmail }))
-  )
-}
-
-export function assertQueryOk(
-  result: RepositoryQueryResult
-): asserts result is Extract<RepositoryQueryResult, { ok: true }> {
-  if (!result.ok) {
-    throw new Error(result.error)
-  }
 }

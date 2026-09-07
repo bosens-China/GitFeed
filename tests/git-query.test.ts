@@ -3,9 +3,9 @@ import os from 'node:os'
 import path from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { execa } from 'execa'
-import { queryMultiRepoCommits, queryRepository } from '../src/main/git/query'
+import { queryMultiRepoCommits } from '../src/main/git/query'
 import { getCommitDiff } from '../src/main/git/commits'
-import { createDefaultFilters, type RepositoryRecord } from '../src/shared/models'
+import { type RepositoryRecord } from '../src/shared/models'
 
 const temporaryDirectories: string[] = []
 
@@ -22,7 +22,7 @@ afterEach(async () => {
   )
 })
 
-describe('queryRepository with a real Git repository', () => {
+describe('queryMultiRepoCommits with a real Git repository', () => {
   it('reads a commit diff without changing repository state', async () => {
     const repoPath = await fs.mkdtemp(path.join(os.tmpdir(), 'gitfeed-diff-'))
     temporaryDirectories.push(repoPath)
@@ -71,22 +71,36 @@ describe('queryRepository with a real Git repository', () => {
     })
 
     const branch = (await git(repoPath, ['branch', '--show-current'])).trim()
-    const result = await queryRepository(repoPath, {
-      ...createDefaultFilters(),
-      branch
+    const result = await queryMultiRepoCommits({
+      repos: [
+        {
+          id: 'repo',
+          path: repoPath,
+          name: 'Repo',
+          enabledForReport: true,
+          selectedBranches: [branch]
+        }
+      ],
+      myIdentities: [],
+      timeRangeState: { preset: 'thisWeek' },
+      includeMerge: false,
+      repoId: 'repo'
     })
 
     expect(result.ok).toBe(true)
-    if (!result.ok) return
-    expect(result.commits).toHaveLength(2)
-    expect(result.authors).toEqual([{ name: 'Reviewer', email: 'reviewer@example.com' }])
-    expect(result.stats).toEqual({
+    expect(result.allCommits).toHaveLength(2)
+    expect(
+      result.allCommits.every(
+        (c) => c.authorName === 'Reviewer' && c.authorEmail === 'reviewer@example.com'
+      )
+    ).toBe(true)
+    expect(result.summaryStats).toMatchObject({
       commitCount: 2,
       additions: 2,
       deletions: 0,
       changedFiles: 2
     })
-    expect(result.commits[0].files[0]).toMatchObject({
+    expect(result.allCommits[0].files[0]).toMatchObject({
       path: 'renamed.txt',
       previousPath: 'work.txt',
       status: 'R',
@@ -94,7 +108,7 @@ describe('queryRepository with a real Git repository', () => {
       deletions: 0,
       binary: false
     })
-    expect(result.commits[1].files[0]).toMatchObject({
+    expect(result.allCommits[1].files[0]).toMatchObject({
       path: 'work.txt',
       status: 'A',
       additions: 2,
@@ -136,8 +150,7 @@ describe('queryRepository with a real Git repository', () => {
       path: repoPath,
       name: id,
       enabledForReport: true,
-      selectedBranches: id === 'repo-one' ? ['--all'] : [branch],
-      filters: createDefaultFilters()
+      selectedBranches: id === 'repo-one' ? ['--all'] : [branch]
     })
     const result = await queryMultiRepoCommits({
       repos: [makeRepo('repo-one', firstRepoPath), makeRepo('repo-two', secondRepoPath)],
@@ -184,8 +197,7 @@ describe('queryRepository with a real Git repository', () => {
           path: repoPath,
           name: 'repo-one',
           enabledForReport: true,
-          selectedBranches: [mainBranch],
-          filters: createDefaultFilters()
+          selectedBranches: [mainBranch]
         }
       ],
       myIdentities: [],

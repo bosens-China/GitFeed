@@ -13,15 +13,6 @@ export interface AuthorIdentity {
   email: string
 }
 
-export type AuthorsFilter = { mode: 'all' } | { mode: 'selected'; authors: AuthorIdentity[] }
-
-export interface RepositoryFilters {
-  branch: string | null
-  authors: AuthorsFilter
-  timeRange: TimeRangeState
-  includeMerge: boolean
-}
-
 export type ProjectViewTab = 'report' | 'changes'
 
 /** 单工程分析页中需要跨会话恢复的稳定视图状态。 */
@@ -47,7 +38,6 @@ export interface RepositoryRecord {
   status?: RepositoryStatus
   lastCheckedAt?: string
   errorMessage?: string
-  filters: RepositoryFilters
   viewMemory?: ProjectViewMemory
 }
 
@@ -106,6 +96,11 @@ export interface CommitStats {
   changedFiles: number
 }
 
+export interface ActivityStats extends CommitStats {
+  activeRepoCount: number
+  activeDayCount: number
+}
+
 export interface ResolvedTimeRange {
   start: Date
   end: Date
@@ -131,49 +126,8 @@ export interface MultiRepoWeeklyQueryResult {
   timeRange: ResolvedTimeRange
   repos: RepoQueryResult[]
   allCommits: CommitItem[]
-  summaryStats: {
-    commitCount: number
-    activeRepoCount: number
-    activeDayCount: number
-    additions: number
-    deletions: number
-    changedFiles: number
-  }
+  summaryStats: ActivityStats
   error?: string
-}
-
-export type RepositoryQuerySuccess = {
-  ok: true
-  path: string
-  name: string
-  branches: string[]
-  headBranch: string | null
-  headDetached: boolean
-  resolvedBranch: string | null
-  branchWarning: string | null
-  authors: AuthorIdentity[]
-  authorsFilter: AuthorsFilter
-  commits: CommitItem[]
-  stats: CommitStats
-  timeRange: ResolvedTimeRange
-  includeMerge: boolean
-}
-
-export type RepositoryQueryFailure = {
-  ok: false
-  error: string
-  code: 'NOT_GIT' | 'PATH_MISSING' | 'NO_GIT_BINARY' | 'GIT_ERROR' | 'INVALID_RANGE' | 'UNKNOWN'
-}
-
-export type RepositoryQueryResult = RepositoryQuerySuccess | RepositoryQueryFailure
-
-export function createDefaultFilters(): RepositoryFilters {
-  return {
-    branch: null,
-    authors: { mode: 'all' },
-    timeRange: { preset: 'thisWeek' },
-    includeMerge: false
-  }
 }
 
 export function authorKey(author: AuthorIdentity): string {

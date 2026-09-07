@@ -1,9 +1,4 @@
-import {
-  collectAuthors,
-  computeStats,
-  filterCommitsByAuthors,
-  reconcileAuthorsFilter
-} from '@shared/commit-utils'
+import { computeStats } from '@shared/commit-utils'
 import {
   authorKey,
   matchesAnyIdentity,
@@ -11,22 +6,19 @@ import {
   type CommitItem,
   type MultiRepoWeeklyQueryResult,
   type RepoQueryResult,
-  type RepositoryFilters,
   type RepositoryBranchOverride,
-  type RepositoryQueryResult,
   type RepositoryRecord,
   type RepositoryStatus,
   type TimeRangeState
 } from '@shared/models'
-import { localDateKey, resolveTimeRange } from '@shared/time-range'
+import { resolveTimeRange } from '@shared/time-range'
 import { listCommitsInRange } from './commits'
-import { GitCommandError, runGit } from './run'
+import { runGit } from './run'
 import {
   assertGitRepository,
   getHeadState,
   listLocalBranches,
   pathExists,
-  repositoryDisplayName,
   resolveBranchFallback
 } from './repository'
 
@@ -117,108 +109,6 @@ export async function discoverRepoAuthors(repoPath: string): Promise<AuthorIdent
   }
 }
 
-export async function queryRepository(
-  repoPath: string,
-  filters: RepositoryFilters
-): Promise<RepositoryQueryResult> {
-  try {
-    if (!(await pathExists(repoPath))) {
-      return {
-        ok: false,
-        code: 'PATH_MISSING',
-        error: '仓库路径不存在或不可访问'
-      }
-    }
-
-    let timeRange
-    try {
-      timeRange = resolveTimeRange(filters.timeRange)
-    } catch (error) {
-      return {
-        ok: false,
-        code: 'INVALID_RANGE',
-        error: error instanceof Error ? error.message : '时间范围无效'
-      }
-    }
-
-    const branches = await listLocalBranches(repoPath)
-    const head = await getHeadState(repoPath)
-    const { branch, warning } = resolveBranchFallback(
-      filters.branch,
-      branches,
-      head.branch,
-      head.detached
-    )
-
-    if (!branch) {
-      return {
-        ok: true,
-        path: repoPath,
-        name: repositoryDisplayName(repoPath),
-        branches,
-        headBranch: head.branch,
-        headDetached: head.detached,
-        resolvedBranch: null,
-        branchWarning: warning,
-        authors: [],
-        authorsFilter: { mode: 'selected', authors: [] },
-        commits: [],
-        stats: { commitCount: 0, additions: 0, deletions: 0, changedFiles: 0 },
-        timeRange,
-        includeMerge: filters.includeMerge
-      }
-    }
-
-    // 快捷范围左闭右开：用 end-1ms；自定义为闭区间含结束日 23:59:59.999
-    const endExclusive = filters.timeRange.preset !== 'custom'
-    const rangeEnd = endExclusive ? new Date(timeRange.end.getTime() - 1) : timeRange.end
-
-    const allInRange = await listCommitsInRange({
-      repoPath,
-      branch,
-      start: timeRange.start,
-      end: rangeEnd,
-      includeMerge: filters.includeMerge
-    })
-
-    const authors = collectAuthors(allInRange)
-    const authorsFilter = reconcileAuthorsFilter(filters.authors, authors)
-
-    const commits = filterCommitsByAuthors(allInRange, authorsFilter)
-    const stats = computeStats(commits)
-
-    return {
-      ok: true,
-      path: repoPath,
-      name: repositoryDisplayName(repoPath),
-      branches,
-      headBranch: head.branch,
-      headDetached: head.detached,
-      resolvedBranch: branch,
-      branchWarning: warning,
-      authors,
-      authorsFilter,
-      commits,
-      stats,
-      timeRange,
-      includeMerge: filters.includeMerge
-    }
-  } catch (error) {
-    if (error instanceof GitCommandError) {
-      return {
-        ok: false,
-        code: error.code === 'NO_GIT_BINARY' ? 'NO_GIT_BINARY' : 'GIT_ERROR',
-        error: error.message
-      }
-    }
-    return {
-      ok: false,
-      code: 'UNKNOWN',
-      error: error instanceof Error ? error.message : '查询失败'
-    }
-  }
-}
-
 export async function queryMultiRepoCommits(options: {
   repos: RepositoryRecord[]
   myIdentities: AuthorIdentity[]
@@ -234,11 +124,6 @@ export async function queryMultiRepoCommits(options: {
 
   const repoResults: RepoQueryResult[] = []
   const allCommitsMap = new Map<string, CommitItem>()
-  const activeRepoIds = new Set<string>()
-  const activeDays = new Set<string>()
-  const changedFilePaths = new Set<string>()
-  let totalAdditions = 0
-  let totalDeletions = 0
 
   for (const repo of repos) {
     if (repoId ? repo.id !== repoId : !repo.enabledForReport) {
@@ -328,23 +213,8 @@ export async function queryMultiRepoCommits(options: {
 
       const repoStats = computeStats(filteredCommits)
 
-      if (filteredCommits.length > 0) {
-        activeRepoIds.add(repo.id)
-      }
-
       for (const commit of filteredCommits) {
-        const commitKey = `${repo.id}\u0000${commit.hash}`
-        if (!allCommitsMap.has(commitKey)) {
-          allCommitsMap.set(commitKey, commit)
-
-          activeDays.add(localDateKey(commit.authoredAt))
-
-          for (const file of commit.files) {
-            changedFilePaths.add(`${repo.id}\u0000${file.path}`)
-            if (file.additions) totalAdditions += file.additions
-            if (file.deletions) totalDeletions += file.deletions
-          }
-        }
+        allCommitsMap.set(`${repo.id}\u0000${commit.hash}`, commit)
       }
 
       repoResults.push({
@@ -381,13 +251,6 @@ export async function queryMultiRepoCommits(options: {
     timeRange,
     repos: repoResults,
     allCommits,
-    summaryStats: {
-      commitCount: allCommits.length,
-      activeRepoCount: activeRepoIds.size,
-      activeDayCount: activeDays.size,
-      additions: totalAdditions,
-      deletions: totalDeletions,
-      changedFiles: changedFilePaths.size
-    }
+    summaryStats: computeStats(allCommits)
   }
 }

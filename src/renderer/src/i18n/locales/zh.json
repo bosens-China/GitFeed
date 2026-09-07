@@ -43,6 +43,7 @@
     "backToOverview": "返回项目概览"
   },
   "thisWeek": {
+    "currentRepo": "当前工程",
     "allRepos": "全部参与工程",
     "searchPlaceholder": "搜索提交信息…",
     "copyCommitDetails": "复制当前提交明细（Markdown）",

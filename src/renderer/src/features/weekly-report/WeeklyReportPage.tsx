@@ -1,3 +1,4 @@
+import { collectAuthors, computeStats } from '@shared/commit-utils'
 import { useMemo, useState } from 'react'
 import {
   Alert,
@@ -22,12 +23,11 @@ import { buildCommitsWeeklyReportMarkdown } from '@shared/markdown'
 import {
   authorKey,
   defaultSelectedAuthorKeys,
-  type AuthorIdentity,
   type CommitItem,
   type TimeRangePreset,
   type TimeRangeState
 } from '@shared/models'
-import { customDayBounds, localDateKey } from '@shared/time-range'
+import { customDayBounds } from '@shared/time-range'
 import { useWeeklyActivity, useWorkbench } from '@renderer/hooks/useWorkbench'
 import { WeeklyChangesFeed } from './WeeklyChangesFeed'
 import { StatsHeader } from '../this-week/StatsHeader'
@@ -67,15 +67,10 @@ export function WeeklyReportPage({
       ? [dayjs(timeRange.customStart), dayjs(timeRange.customEnd)]
       : null
 
-  const availableAuthors = useMemo((): AuthorIdentity[] => {
-    const allCommits = activityData?.allCommits ?? []
-    const authors = new Map<string, AuthorIdentity>()
-    for (const c of allCommits) {
-      const author = { name: c.authorName, email: c.authorEmail }
-      if (author.name) authors.set(authorKey(author), author)
-    }
-    return Array.from(authors.values()).sort((a, b) => a.name.localeCompare(b.name))
-  }, [activityData?.allCommits])
+  const availableAuthors = useMemo(
+    () => collectAuthors(activityData?.allCommits ?? []).filter((author) => author.name),
+    [activityData?.allCommits]
+  )
 
   const authorOptions = useMemo(
     () =>
@@ -139,34 +134,7 @@ export function WeeklyReportPage({
     }
   }
 
-  const filteredStats = useMemo(() => {
-    let add = 0
-    let del = 0
-    const files = new Set<string>()
-    const days = new Set<string>()
-    const repos = new Set<string>()
-
-    for (const c of filteredCommits) {
-      days.add(localDateKey(c.authoredAt))
-      if (c.repoId || c.repoName) {
-        repos.add(c.repoId || c.repoName!)
-      }
-      for (const f of c.files) {
-        files.add(`${c.repoId ?? c.repoName ?? ''}\u0000${f.path}`)
-        if (f.additions) add += f.additions
-        if (f.deletions) del += f.deletions
-      }
-    }
-
-    return {
-      commitCount: filteredCommits.length,
-      activeRepoCount: repos.size,
-      activeDayCount: days.size,
-      additions: add,
-      deletions: del,
-      changedFiles: files.size
-    }
-  }, [filteredCommits])
+  const filteredStats = useMemo(() => computeStats(filteredCommits), [filteredCommits])
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[var(--ant-color-bg-layout)]">
