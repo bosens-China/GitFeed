@@ -13,7 +13,11 @@ export const IpcChannels = {
   weeklyQueryActivity: 'weekly:queryActivity',
   appGetVersion: 'app:getVersion',
   appGetGitStatus: 'app:getGitStatus',
-  appCheckForUpdates: 'app:checkForUpdates'
+  appCheckForUpdates: 'app:checkForUpdates',
+  holidaysGetStatus: 'holidays:getStatus',
+  holidaysGetCalendar: 'holidays:getCalendar',
+  holidaysSetAutoUpdate: 'holidays:setAutoUpdate',
+  holidaysCheck: 'holidays:check'
 } as const
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels]

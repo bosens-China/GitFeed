@@ -16,6 +16,12 @@ import { GitCommandError, runGit } from './git/run'
 import { assertGitRepository, repositoryDisplayName, resolveBranchFallback } from './git/repository'
 import { checkForUpdates } from './update'
 import {
+  checkHolidayUpdates,
+  getHolidayStatus,
+  readHolidayCalendar,
+  setHolidayAutoUpdate
+} from './holidays'
+import {
   addRepositoryRecord,
   readWorkbenchState,
   removeRepositoryRecord,
@@ -367,5 +373,16 @@ export function registerIpcHandlers(): void {
 
   registerHandler(IpcChannels.appCheckForUpdates, async () => {
     return checkForUpdates(app.getVersion())
+  })
+
+  registerHandler(IpcChannels.holidaysGetStatus, () => getHolidayStatus())
+  registerHandler(IpcChannels.holidaysGetCalendar, () => readHolidayCalendar())
+  registerHandler(IpcChannels.holidaysSetAutoUpdate, (enabled: unknown) => {
+    if (typeof enabled !== 'boolean') throw new Error('节假日自动更新设置无效')
+    return setHolidayAutoUpdate(enabled)
+  })
+  registerHandler(IpcChannels.holidaysCheck, async () => {
+    await checkHolidayUpdates()
+    return getHolidayStatus()
   })
 }

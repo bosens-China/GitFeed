@@ -3,6 +3,24 @@ import { join } from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
 import { registerIpcHandlers } from './ipc'
+import { checkHolidayUpdatesIfEnabled } from './holidays'
+
+function runHolidayAutoCheck(): void {
+  void checkHolidayUpdatesIfEnabled().catch((error) => {
+    console.warn('节假日自动检查失败', error)
+  })
+}
+
+function scheduleYearChangeCheck(): void {
+  const now = new Date()
+  const nextMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1)
+  setTimeout(() => {
+    if (new Date().getFullYear() !== now.getFullYear()) {
+      runHolidayAutoCheck()
+    }
+    scheduleYearChangeCheck()
+  }, nextMidnight.getTime() - now.getTime())
+}
 
 function openExternalWebUrl(value: string): void {
   try {
@@ -67,9 +85,14 @@ app.whenReady().then(() => {
 
   registerIpcHandlers()
   createWindow()
+  runHolidayAutoCheck()
+  scheduleYearChangeCheck()
 
   app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    if (BrowserWindow.getAllWindows().length === 0) {
+      createWindow()
+      runHolidayAutoCheck()
+    }
   })
 })
 

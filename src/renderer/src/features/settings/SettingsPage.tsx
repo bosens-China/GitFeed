@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { useWorkbench } from '@renderer/hooks/useWorkbench'
 import { AboutAndDiagnosticsCard } from './AboutAndDiagnosticsCard'
 import { GeneralPreferencesCard } from './GeneralPreferencesCard'
+import { HolidayPreferencesCard } from './HolidayPreferencesCard'
 import { IdentityManagementCard } from './IdentityManagementCard'
 import { RepoManagementCard } from './RepoManagementCard'
 
@@ -58,7 +59,12 @@ export function SettingsPage(): React.JSX.Element {
           {t('settings.tabs.preferences', { defaultValue: '通用偏好' })}
         </span>
       ),
-      children: <GeneralPreferencesCard />
+      children: (
+        <div className="flex flex-col gap-4">
+          <GeneralPreferencesCard />
+          <HolidayPreferencesCard />
+        </div>
+      )
     },
     {
       key: 'about',

@@ -11,6 +11,7 @@ import type {
   WorkbenchState
 } from '@shared/models'
 import type { UpdateCheckResult } from '@shared/update'
+import type { HolidayStatus, HolidayYearData } from '@shared/holidays'
 
 const api = {
   platform: process.platform,
@@ -50,7 +51,13 @@ const api = {
   getGitStatus: (): Promise<{ ok: boolean; version?: string; error?: string }> =>
     ipcRenderer.invoke(IpcChannels.appGetGitStatus),
   checkForUpdates: (): Promise<UpdateCheckResult> =>
-    ipcRenderer.invoke(IpcChannels.appCheckForUpdates)
+    ipcRenderer.invoke(IpcChannels.appCheckForUpdates),
+  getHolidayStatus: (): Promise<HolidayStatus> => ipcRenderer.invoke(IpcChannels.holidaysGetStatus),
+  getHolidayCalendar: (): Promise<HolidayYearData[]> =>
+    ipcRenderer.invoke(IpcChannels.holidaysGetCalendar),
+  setHolidayAutoUpdate: (enabled: boolean): Promise<HolidayStatus> =>
+    ipcRenderer.invoke(IpcChannels.holidaysSetAutoUpdate, enabled),
+  checkHolidayUpdates: (): Promise<HolidayStatus> => ipcRenderer.invoke(IpcChannels.holidaysCheck)
 }
 
 export type GitFeedApi = typeof api
