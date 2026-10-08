@@ -131,12 +131,16 @@ export function CommitRow({
                             >
                               {f.status}
                             </Tag>
-                            <span
-                              className="truncate text-[var(--ant-color-text-secondary)] group-hover:text-[var(--ant-color-primary)] transition-colors"
+                            <Button
+                              type="link"
+                              size="small"
+                              className="!h-auto max-w-full !p-0 truncate text-left font-mono text-xs"
                               title={f.path}
+                              aria-label={t('commitDetails.openFileDiff', { file: f.path })}
+                              onClick={() => onSelect(commit, f.path)}
                             >
                               {f.path}
-                            </span>
+                            </Button>
                           </span>
                           <span className="shrink-0 text-right text-[11px] flex items-center gap-1.5">
                             {f.additions !== null && (

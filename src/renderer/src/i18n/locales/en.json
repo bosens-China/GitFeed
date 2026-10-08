@@ -184,6 +184,7 @@
   "commitDetails": {
     "title": "Commit details",
     "openTooltip": "View details and diff for commit {{hash}}",
+    "openFileDiff": "View code diff for {{file}}",
     "message": "Commit message",
     "hash": "Full hash",
     "repository": "Project",
