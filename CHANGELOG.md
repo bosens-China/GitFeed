@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.3.0](https://github.com/bosens-China/GitFeed/compare/v1.2.0...v1.3.0) (2026-10-08)
+
+
+### Features
+
+* **diff:** 点击文件直达对应变更 ([db5f705](https://github.com/bosens-China/GitFeed/commit/db5f70535b870cab3fffa0a5571d16dd1eadf59b))
+* **holidays:** 内置年度数据并支持自动更新 ([500c5f6](https://github.com/bosens-China/GitFeed/commit/500c5f623336e05d513bba85cde1058efb335669))
+* **report:** 按时间线展示并筛选工作日 ([63e7cc2](https://github.com/bosens-China/GitFeed/commit/63e7cc2eb1f7f3ba587b3092dc95399d43ff7bc0))
+
+
+### Bug Fixes
+
+* **git:** 按作者时间流式筛选提交 ([0533edd](https://github.com/bosens-China/GitFeed/commit/0533edd7b637f18e38402a724116b7ea803f2eb8))
+* **store:** 保留损坏配置并暴露读取错误 ([a73dcc7](https://github.com/bosens-China/GitFeed/commit/a73dcc792d928f5485d0e0c1b6d80707f75b6bc6))
+* **ui:** 使用系统标题栏并显示配置错误 ([dc6e716](https://github.com/bosens-China/GitFeed/commit/dc6e716f2d7ef471e87a30d5a95d6bc193aba32b))
+
 ## [1.2.0](https://github.com/bosens-China/GitFeed/compare/v1.1.0...v1.2.0) (2026-09-07)
 
 
