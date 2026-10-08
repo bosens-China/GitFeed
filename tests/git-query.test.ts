@@ -57,7 +57,7 @@ describe('queryMultiRepoCommits with a real Git repository', () => {
     await git(repoPath, ['add', 'work.txt'])
 
     const authorDate = new Date(Date.now() - 2 * 60 * 1000)
-    const committerDate = new Date(authorDate.getTime() + 7 * 24 * 60 * 60 * 1000)
+    const committerDate = new Date(authorDate.getTime() - 7 * 24 * 60 * 60 * 1000)
     await git(repoPath, ['commit', '-q', '-m', 'first view'], {
       ...process.env,
       GIT_AUTHOR_DATE: authorDate.toISOString(),

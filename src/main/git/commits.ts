@@ -1,5 +1,11 @@
-import type { CommitItem, FileChange, FileChangeStatus } from '@shared/models'
-import { runGit } from './run'
+import {
+  matchesAnyIdentity,
+  type AuthorIdentity,
+  type CommitItem,
+  type FileChange,
+  type FileChangeStatus
+} from '@shared/models'
+import { forEachGitRecord, runGit } from './run'
 
 const COMMIT_FIELD_SEP = '\u001f'
 const COMMIT_RECORD_SEP = '\u001e'
@@ -20,10 +26,12 @@ export async function listCommitsInRange(options: {
   start: Date
   end: Date
   includeMerge: boolean
+  identities?: AuthorIdentity[]
   repoId?: string
   repoName?: string
 }): Promise<CommitItem[]> {
-  const { repoPath, branch, branches, start, end, includeMerge, repoId, repoName } = options
+  const { repoPath, branch, branches, start, end, includeMerge, identities, repoId, repoName } =
+    options
   const targetBranches = branches && branches.length > 0 ? branches : branch ? [branch] : []
   if (targetBranches.length === 0) {
     return []
@@ -40,20 +48,23 @@ export async function listCommitsInRange(options: {
     '--'
   ]
 
-  // Git's date limiters use committer date; fetch metadata first and filter by author date below.
-  const { stdout } = await runGit(repoPath, args)
-  const rawCommits = parseCommitLog(stdout)
-  const deduped = dedupeByHash(rawCommits)
-
-  const filtered = deduped
-    .filter((commit) => {
-      if (!includeMerge && commit.parents.length > 1) {
-        return false
-      }
-      const time = new Date(commit.authoredAt).getTime()
-      return time >= start.getTime() && time <= end.getTime()
-    })
-    .sort((a, b) => new Date(b.authoredAt).getTime() - new Date(a.authoredAt).getTime())
+  // Git's date limiters use committer date; stream history to keep author-date filtering exact.
+  const filtered: RawCommit[] = []
+  await forEachGitRecord(repoPath, args, COMMIT_RECORD_SEP, (record) => {
+    const commit = parseCommitLog(record)[0]
+    if (!commit) return
+    if (!includeMerge && commit.parents.length > 1) return
+    const time = Date.parse(commit.authoredAt)
+    if (time < start.getTime() || time > end.getTime()) return
+    if (
+      identities &&
+      !matchesAnyIdentity({ name: commit.authorName, email: commit.authorEmail }, identities)
+    ) {
+      return
+    }
+    filtered.push(commit)
+  })
+  filtered.sort((a, b) => Date.parse(b.authoredAt) - Date.parse(a.authoredAt))
 
   const concurrency = 8
   const commits: CommitItem[] = []
@@ -138,16 +149,6 @@ function parseCommitLog(stdout: string): RawCommit[] {
   }
 
   return commits
-}
-
-function dedupeByHash(commits: RawCommit[]): RawCommit[] {
-  const map = new Map<string, RawCommit>()
-  for (const commit of commits) {
-    if (!map.has(commit.hash)) {
-      map.set(commit.hash, commit)
-    }
-  }
-  return [...map.values()]
 }
 
 async function listCommitFiles(repoPath: string, hash: string): Promise<FileChange[]> {

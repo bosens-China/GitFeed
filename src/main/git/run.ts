@@ -1,4 +1,5 @@
 import { execa } from 'execa'
+import { spawn } from 'node:child_process'
 
 export class GitCommandError extends Error {
   readonly code: 'NO_GIT_BINARY' | 'GIT_ERROR'
@@ -7,6 +8,15 @@ export class GitCommandError extends Error {
     super(message)
     this.name = 'GitCommandError'
     this.code = code
+  }
+}
+
+function gitEnv(): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    LANG: 'en_US.UTF-8',
+    LC_ALL: 'en_US.UTF-8',
+    GIT_TERMINAL_PROMPT: '0'
   }
 }
 
@@ -21,12 +31,7 @@ export async function runGit(
       reject: options?.reject ?? true,
       stripFinalNewline: options?.stripFinalNewline ?? true,
       windowsHide: true,
-      env: {
-        ...process.env,
-        LANG: 'en_US.UTF-8',
-        LC_ALL: 'en_US.UTF-8',
-        GIT_TERMINAL_PROMPT: '0'
-      }
+      env: gitEnv()
     })
     return {
       stdout: result.stdout,
@@ -61,6 +66,66 @@ export async function runGit(
     const detail = (err.stderr || err.shortMessage || err.message || 'Git 命令执行失败').trim()
     throw new GitCommandError(detail, 'GIT_ERROR')
   }
+}
+
+export async function forEachGitRecord(
+  cwd: string,
+  args: string[],
+  separator: string,
+  onRecord: (record: string) => void
+): Promise<void> {
+  await new Promise<void>((resolve, reject) => {
+    const child = spawn('git', args, { cwd, windowsHide: true, env: gitEnv() })
+    let pending = ''
+    let stderr = ''
+    let settled = false
+    const fail = (error: Error): void => {
+      if (settled) return
+      settled = true
+      child.kill()
+      reject(error)
+    }
+
+    child.stdout.setEncoding('utf8')
+    child.stdout.on('data', (chunk: string) => {
+      if (settled) return
+      pending += chunk
+      try {
+        let end: number
+        while ((end = pending.indexOf(separator)) !== -1) {
+          onRecord(pending.slice(0, end))
+          pending = pending.slice(end + separator.length)
+        }
+      } catch (error) {
+        fail(error instanceof Error ? error : new Error(String(error)))
+      }
+    })
+    child.stderr.setEncoding('utf8')
+    child.stderr.on('data', (chunk: string) => {
+      stderr = (stderr + chunk).slice(-16384)
+    })
+    child.on('error', (error: NodeJS.ErrnoException) => {
+      fail(
+        error.code === 'ENOENT'
+          ? new GitCommandError('未找到可用的系统 Git。', 'NO_GIT_BINARY')
+          : new GitCommandError(error.message)
+      )
+    })
+    child.on('close', (code) => {
+      if (settled) return
+      if (code !== 0) {
+        fail(new GitCommandError(stderr.trim() || 'Git 命令执行失败'))
+        return
+      }
+      try {
+        if (pending.trim()) onRecord(pending)
+        settled = true
+        resolve()
+      } catch (error) {
+        fail(error instanceof Error ? error : new Error(String(error)))
+      }
+    })
+  })
 }
 
 export async function runGitLines(cwd: string, args: string[]): Promise<string[]> {

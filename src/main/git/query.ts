@@ -1,7 +1,6 @@
 import { computeStats } from '@shared/commit-utils'
 import {
   authorKey,
-  matchesAnyIdentity,
   type AuthorIdentity,
   type CommitItem,
   type MultiRepoWeeklyQueryResult,
@@ -202,14 +201,12 @@ export async function queryMultiRepoCommits(options: {
         start: timeRange.start,
         end: rangeEnd,
         includeMerge,
+        identities: myIdentities,
         repoId: repo.id,
         repoName: repo.name
       })
 
-      // 根据我的身份过滤
-      const filteredCommits = rawCommits.filter((commit) =>
-        matchesAnyIdentity({ name: commit.authorName, email: commit.authorEmail }, myIdentities)
-      )
+      const filteredCommits = rawCommits
 
       const repoStats = computeStats(filteredCommits)
 
