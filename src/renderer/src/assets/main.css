@@ -31,34 +31,6 @@ a:hover {
   text-decoration: none;
 }
 
-.app-drag {
-  -webkit-app-region: drag;
-  user-select: none;
-}
-
-.app-no-drag {
-  -webkit-app-region: no-drag;
-}
-
-.app-drag
-  :where(
-    .ant-btn,
-    .ant-input-affix-wrapper,
-    .ant-picker,
-    .ant-segmented,
-    .ant-select,
-    .ant-tabs-nav,
-    .ant-tag,
-    a,
-    button,
-    input,
-    select,
-    textarea,
-    [role='button']
-  ) {
-  -webkit-app-region: no-drag;
-}
-
 [data-cursor-tooltip-target] {
   cursor: default;
 }

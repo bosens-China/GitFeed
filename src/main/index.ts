@@ -24,19 +24,6 @@ function createWindow(): void {
     show: false,
     autoHideMenuBar: true,
     title: 'GitFeed',
-    // 隐藏系统默认标题栏，保留窗口控件；内容区自行提供拖拽区域
-    titleBarStyle: 'hidden',
-    ...(process.platform === 'darwin'
-      ? {
-          trafficLightPosition: { x: 16, y: 20 }
-        }
-      : {
-          titleBarOverlay: {
-            color: '#00000000',
-            symbolColor: '#888888',
-            height: 56
-          }
-        }),
     ...(process.platform === 'linux' ? { icon } : {}),
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
