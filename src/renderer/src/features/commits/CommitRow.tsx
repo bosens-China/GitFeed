@@ -1,5 +1,5 @@
 import { Button, Collapse, Space, Tag, Tooltip, Typography } from 'antd'
-import { FileText, GitBranch, GitMerge } from 'lucide-react'
+import { FileText, FolderGit2, GitBranch, GitMerge } from 'lucide-react'
 import dayjs from 'dayjs'
 import { useTranslation } from 'react-i18next'
 import type { CommitItem } from '@shared/models'
@@ -9,10 +9,12 @@ import { CursorTooltip } from '@renderer/components/CursorTooltip'
 
 export function CommitRow({
   commit,
-  onSelect
+  onSelect,
+  showRepo = false
 }: {
   commit: CommitItem
-  onSelect: (commit: CommitItem) => void
+  onSelect: (commit: CommitItem, filePath?: string) => void
+  showRepo?: boolean
 }): React.JSX.Element {
   const { t } = useTranslation()
   const { additions: totalAdd, deletions: totalDel } = computeStats([commit])
@@ -63,6 +65,12 @@ export function CommitRow({
 
         {/* 元数据标签 */}
         <div className="flex flex-wrap items-center gap-2 pl-6 text-xs text-[var(--ant-color-text-tertiary)]">
+          {showRepo && (
+            <Tag bordered={false} className="m-0 flex items-center gap-1 text-[11px]">
+              <FolderGit2 size={11} />
+              {commit.repoName || '其他工程'}
+            </Tag>
+          )}
           <Tag
             bordered={false}
             className="m-0 flex items-center gap-1 text-[11px] font-mono text-[var(--ant-color-text-secondary)]"

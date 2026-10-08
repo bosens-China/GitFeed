@@ -7,14 +7,20 @@ import type { CommitItem } from '@shared/models'
 import { localDateKey } from '@shared/time-range'
 import { CommitRow } from '../commits/CommitRow'
 import { CommitDetailsModal } from '../commits/CommitDetailsModal'
+import type { HolidayCalendar } from '@shared/holiday-calendar'
+import { HolidayDateTag } from '@renderer/components/HolidayDateTag'
 
 interface AggregatedCommitFeedProps {
   commits: CommitItem[]
+  holidayCalendar: HolidayCalendar
 }
 
-export function AggregatedCommitFeed({ commits }: AggregatedCommitFeedProps): React.JSX.Element {
+export function AggregatedCommitFeed({
+  commits,
+  holidayCalendar
+}: AggregatedCommitFeedProps): React.JSX.Element {
   const { t } = useTranslation()
-  const [selectedCommit, setSelectedCommit] = useState<CommitItem | null>(null)
+  const [selection, setSelection] = useState<{ commit: CommitItem; filePath?: string } | null>(null)
 
   // 按日期（天）聚合提交
   const dayGroups = useMemo(() => {
@@ -50,11 +56,12 @@ export function AggregatedCommitFeed({ commits }: AggregatedCommitFeedProps): Re
         {dayGroups.map((group) => (
           <div key={group.dayKey} className="flex flex-col gap-2">
             {/* 日期吸顶标题 */}
-            <div className="flex items-center gap-2 px-1 text-xs text-[var(--ant-color-text-secondary)] font-medium">
+            <div className="flex flex-wrap items-center gap-2 px-1 text-xs text-[var(--ant-color-text-secondary)] font-medium">
               <Calendar size={14} className="text-[var(--ant-color-primary)]" />
               <span className="text-sm font-semibold text-[var(--ant-color-text)]">
                 {group.dateFormatted}
               </span>
+              <HolidayDateTag date={group.dayKey} calendar={holidayCalendar} />
               <Tag bordered={false} className="m-0 font-mono text-xs">
                 {group.commits.length} {t('stats.commits', { defaultValue: '次提交' })}
               </Tag>
@@ -71,7 +78,7 @@ export function AggregatedCommitFeed({ commits }: AggregatedCommitFeedProps): Re
                   <CommitRow
                     key={`${commit.repoId ?? commit.repoName ?? ''}\u0000${commit.hash}`}
                     commit={commit}
-                    onSelect={setSelectedCommit}
+                    onSelect={(commit, filePath) => setSelection({ commit, filePath })}
                   />
                 ))}
               </div>
@@ -79,7 +86,11 @@ export function AggregatedCommitFeed({ commits }: AggregatedCommitFeedProps): Re
           </div>
         ))}
       </div>
-      <CommitDetailsModal commit={selectedCommit} onClose={() => setSelectedCommit(null)} />
+      <CommitDetailsModal
+        commit={selection?.commit ?? null}
+        focusedFilePath={selection?.filePath}
+        onClose={() => setSelection(null)}
+      />
     </>
   )
 }

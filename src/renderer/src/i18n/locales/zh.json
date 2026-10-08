@@ -209,6 +209,9 @@
     "lastWeek": "上周",
     "lastMonth": "上个月",
     "custom": "自定义",
+    "onlyWorkdays": "仅工作日",
+    "workdaysHint": "默认隐藏已确认的休息日提交；调休上班日和缺少节假日数据的日期会保留。关闭后查看全部日期。",
+    "hiddenRestCommits": "已隐藏 {{count}} 条",
     "filterAuthors": "全部作者",
     "noAuthors": "当前范围暂无作者",
     "analysisBranch": "查看分支",
@@ -231,7 +234,16 @@
     "activeDays": "活跃天数",
     "additions": "代码新增",
     "deletions": "代码删除",
-    "filesChanged": "涉及文件"
+    "filesChanged": "涉及文件",
+    "activeWorkdays": "活跃工作日",
+    "activeRestDays": "活跃休息日",
+    "holidayDataIncomplete": "{{count}} 个活跃日期缺少节假日数据，工作日统计暂不可用"
+  },
+  "holidays": {
+    "offDay": "放假",
+    "restDay": "休息日",
+    "makeupWorkday": "调休上班",
+    "loadFailed": "节假日数据读取失败，日期标注、工作日筛选与统计暂不可用"
   },
   "errors": {
     "NOT_GIT": "找不到有效的 Git 仓库",

@@ -20,10 +20,16 @@ import { Binary, FileCode2, GitBranch, GitCommitHorizontal, GitMerge } from 'luc
 import dayjs from 'dayjs'
 import { useTranslation } from 'react-i18next'
 import type { CommitItem, FileChangeStatus } from '@shared/models'
-import { parseUnifiedDiff, type DiffSideLine, type ParsedDiffFile } from '@shared/unified-diff'
+import {
+  parseUnifiedDiff,
+  prioritizeDiffFile,
+  type DiffSideLine,
+  type ParsedDiffFile
+} from '@shared/unified-diff'
 
 interface CommitDetailsModalProps {
   commit: CommitItem | null
+  focusedFilePath?: string
   onClose: () => void
 }
 
@@ -110,6 +116,7 @@ function FileDiff({ file }: { file: ParsedDiffFile }): React.JSX.Element {
 
 export function CommitDetailsModal({
   commit,
+  focusedFilePath,
   onClose
 }: CommitDetailsModalProps): React.JSX.Element {
   const { t } = useTranslation()
@@ -124,6 +131,10 @@ export function CommitDetailsModal({
   const parsedFiles = useMemo(
     () => (diffQuery.data ? parseUnifiedDiff(diffQuery.data.patch) : []),
     [diffQuery.data]
+  )
+  const focusedDiff = useMemo(
+    () => prioritizeDiffFile(parsedFiles, focusedFilePath),
+    [focusedFilePath, parsedFiles]
   )
 
   const additions = commit?.files.reduce((total, file) => total + (file.additions ?? 0), 0) ?? 0
@@ -198,8 +209,13 @@ export function CommitDetailsModal({
                     />
                   ) : (
                     <Collapse
-                      defaultActiveKey={parsedFiles.map((_, index) => String(index))}
-                      items={parsedFiles.map((file, index) => ({
+                      key={`${commit.repoId ?? ''}\u0000${commit.hash}\u0000${focusedFilePath ?? ''}`}
+                      defaultActiveKey={
+                        focusedDiff.focused
+                          ? ['0']
+                          : focusedDiff.files.map((_, index) => String(index))
+                      }
+                      items={focusedDiff.files.map((file, index) => ({
                         key: String(index),
                         label: (
                           <span className="font-mono text-xs">

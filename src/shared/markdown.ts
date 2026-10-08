@@ -1,6 +1,7 @@
 import type { CommitItem } from './models'
-import { parseCommitCategory } from './commit-category'
 import { computeStats } from './commit-utils'
+import { localDateKey } from './time-range'
+import { computeHolidayActivityStats, type HolidayCalendar } from './holiday-calendar'
 
 function escapeMarkdownInline(text: string): string {
   return text.replace(/\s*\r?\n\s*/g, ' ').replace(/([\\`*_[\]{}()|<>])/g, '\\$1')
@@ -15,8 +16,9 @@ export function buildCommitsWeeklyReportMarkdown(
   options: {
     title?: string
     timeRangeLabel?: string
-    groupMode?: 'byRepo' | 'singleRepo'
+    showRepo?: boolean
     linkCommits?: boolean
+    holidayCalendar?: HolidayCalendar
   } = {}
 ): string {
   if (commits.length === 0) {
@@ -43,50 +45,48 @@ export function buildCommitsWeeklyReportMarkdown(
     ''
   )
 
-  if (options.groupMode === 'byRepo') {
-    const repoGroups = new Map<string, { name: string; commits: CommitItem[] }>()
-    for (const c of commits) {
-      const name = c.repoName || '其他工程'
-      const key = c.repoId || name
-      if (!repoGroups.has(key)) {
-        repoGroups.set(key, { name, commits: [] })
-      }
-      repoGroups.get(key)!.commits.push(c)
-    }
+  if (options.holidayCalendar) {
+    const activity = computeHolidayActivityStats(commits, options.holidayCalendar)
+    lines.push(
+      activity.unknownDayCount === 0
+        ? `> 日期：活跃工作日 ${activity.workdayCount} 天，活跃休息日 ${activity.restDayCount} 天。`
+        : `> 日期：${activity.unknownDayCount} 个活跃日期缺少节假日数据，工作日统计暂不可用。`,
+      ''
+    )
+  }
 
-    for (const { name: repoName, commits: repoCommits } of repoGroups.values()) {
-      lines.push(`## ${escapeMarkdownInline(repoName)}`, '')
-      const catMap = new Map<string, { label: string; commits: CommitItem[] }>()
-      for (const c of repoCommits) {
-        const cat = parseCommitCategory(c.message)
-        if (!catMap.has(cat.key)) {
-          catMap.set(cat.key, { label: `${cat.emoji} ${cat.label}`, commits: [] })
+  const byDay = Map.groupBy(
+    [...commits].sort((a, b) => Date.parse(b.authoredAt) - Date.parse(a.authoredAt)),
+    (commit) => localDateKey(commit.authoredAt)
+  )
+  for (const [day, dayCommits] of byDay) {
+    const holiday = options.holidayCalendar?.days.get(day)
+    const dateLabel = holiday
+      ? ` · ${escapeMarkdownInline(holiday.name)}${holiday.isOffDay ? '放假' : '调休上班'}`
+      : ''
+    lines.push(`## ${day}${dateLabel}`, '')
+    for (const commit of dayCommits) {
+      const [subject, ...body] = commit.message.replace(/\r\n/g, '\n').split('\n')
+      const repo = options.showRepo
+        ? `**${escapeMarkdownInline(commit.repoName || '其他工程')}** · `
+        : ''
+      const time = new Date(commit.authoredAt).toLocaleTimeString('zh-CN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+      })
+      lines.push(
+        `- ${time} ${repo}${escapeMarkdownInline(subject || '(无标题)')} (${reference(commit)})`
+      )
+      if (body.length > 0) {
+        const bodyText = body.join('\n')
+        let fence = '~~~'
+        while (bodyText.includes(fence)) fence += '~'
+        lines.push('', `  ${fence}text`)
+        for (const line of body) {
+          lines.push(`  ${line}`)
         }
-        catMap.get(cat.key)!.commits.push(c)
-      }
-      for (const group of catMap.values()) {
-        lines.push(`### ${group.label}`, '')
-        for (const c of group.commits) {
-          const commitTitle = escapeMarkdownInline(c.message.split('\n')[0] || '(无标题)')
-          lines.push(`- ${commitTitle} (${reference(c)})`)
-        }
-        lines.push('')
-      }
-    }
-  } else {
-    const catMap = new Map<string, { label: string; commits: CommitItem[] }>()
-    for (const c of commits) {
-      const cat = parseCommitCategory(c.message)
-      if (!catMap.has(cat.key)) {
-        catMap.set(cat.key, { label: `${cat.emoji} ${cat.label}`, commits: [] })
-      }
-      catMap.get(cat.key)!.commits.push(c)
-    }
-    for (const group of catMap.values()) {
-      lines.push(`## ${group.label}`, '')
-      for (const c of group.commits) {
-        const commitTitle = escapeMarkdownInline(c.message.split('\n')[0] || '(无标题)')
-        lines.push(`- ${commitTitle} (${reference(c)})`)
+        lines.push(`  ${fence}`)
       }
       lines.push('')
     }

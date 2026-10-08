@@ -1,10 +1,13 @@
-import { Button, DatePicker, Input, Segmented, Select, Space, Tag, Tooltip } from 'antd'
+import { Button, Input, Segmented, Select, Tag, Tooltip } from 'antd'
 import { FolderGit2, GitBranch, RefreshCw, Search } from 'lucide-react'
 import dayjs, { type Dayjs } from 'dayjs'
 import { useTranslation } from 'react-i18next'
 import type { RepositoryRecord, TimeRangePreset, TimeRangeState } from '@shared/models'
 import { customDayBounds } from '@shared/time-range'
 import { ClosingMultiSelect } from '@renderer/components/ClosingMultiSelect'
+import { HolidayRangePicker } from '@renderer/components/HolidayRangePicker'
+import { WorkdayFilterControl } from '@renderer/components/WorkdayFilterControl'
+import type { HolidayCalendar } from '@shared/holiday-calendar'
 
 const CONFIGURED_BRANCHES_VALUE = '\u0000configured-branches'
 
@@ -21,6 +24,10 @@ interface ThisWeekFilterBarProps {
   onAnalysisBranchChange?: (branch: string | null) => void
   isRefreshing?: boolean
   onRefresh: () => void
+  holidayCalendar: HolidayCalendar
+  onlyWorkdays: boolean
+  hiddenRestCommitCount: number
+  onOnlyWorkdaysChange: (checked: boolean) => void
 }
 
 export function ThisWeekFilterBar({
@@ -35,7 +42,11 @@ export function ThisWeekFilterBar({
   analysisBranch,
   onAnalysisBranchChange,
   isRefreshing,
-  onRefresh
+  onRefresh,
+  holidayCalendar,
+  onlyWorkdays,
+  hiddenRestCommitCount,
+  onOnlyWorkdaysChange
 }: ThisWeekFilterBarProps): React.JSX.Element {
   const { t } = useTranslation()
 
@@ -283,8 +294,8 @@ export function ThisWeekFilterBar({
       </div>
 
       {/* 第二行：时间范围筛选、作者下拉与提交信息搜索 */}
-      <div className="flex items-center justify-between gap-4">
-        <Space size="middle" className="flex-1">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Segmented
             value={timeRange.preset}
             options={timeRangeOptions}
@@ -306,12 +317,11 @@ export function ThisWeekFilterBar({
           />
 
           {timeRange.preset === 'custom' ? (
-            <DatePicker.RangePicker
+            <HolidayRangePicker
               value={customRangeValue}
-              allowClear={false}
-              onChange={(dates) => {
-                if (!dates?.[0] || !dates[1]) return
-                const bounds = customDayBounds(dates[0].toDate(), dates[1].toDate())
+              calendar={holidayCalendar}
+              onChange={(start, end) => {
+                const bounds = customDayBounds(start.toDate(), end.toDate())
                 onTimeRangeChange({
                   preset: 'custom',
                   customStart: bounds.start.toISOString(),
@@ -320,9 +330,14 @@ export function ThisWeekFilterBar({
               }}
             />
           ) : null}
-        </Space>
+        </div>
 
-        <Space size="middle">
+        <div className="flex flex-wrap items-center gap-3">
+          <WorkdayFilterControl
+            checked={onlyWorkdays}
+            hiddenCount={hiddenRestCommitCount}
+            onChange={onOnlyWorkdaysChange}
+          />
           <ClosingMultiSelect
             allowClear
             maxTagCount="responsive"
@@ -343,7 +358,7 @@ export function ThisWeekFilterBar({
             allowClear
             className="w-56"
           />
-        </Space>
+        </div>
       </div>
     </div>
   )

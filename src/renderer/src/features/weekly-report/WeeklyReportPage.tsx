@@ -1,11 +1,11 @@
 import { collectAuthors, computeStats } from '@shared/commit-utils'
+import { computeHolidayActivityStats, filterRestDayCommits } from '@shared/holiday-calendar'
 import { useMemo, useState } from 'react'
 import {
   Alert,
   App,
   Button,
   Card,
-  DatePicker,
   Empty,
   Input,
   Segmented,
@@ -29,11 +29,14 @@ import {
 } from '@shared/models'
 import { customDayBounds } from '@shared/time-range'
 import { useWeeklyActivity, useWorkbench } from '@renderer/hooks/useWorkbench'
+import { useHolidayCalendar } from '@renderer/hooks/useHolidayCalendar'
 import { WeeklyChangesFeed } from './WeeklyChangesFeed'
 import { StatsHeader } from '../this-week/StatsHeader'
 import { RepositoryQueryErrors } from '../this-week/RepositoryQueryErrors'
 import { MarkdownReportPreview } from '../this-week/MarkdownReportPreview'
 import { ClosingMultiSelect } from '@renderer/components/ClosingMultiSelect'
+import { HolidayRangePicker } from '@renderer/components/HolidayRangePicker'
+import { WorkdayFilterControl } from '@renderer/components/WorkdayFilterControl'
 
 dayjs.extend(isoWeek)
 
@@ -47,10 +50,17 @@ export function WeeklyReportPage({
   const { t } = useTranslation()
   const { message } = App.useApp()
   const { state: workbench } = useWorkbench()
+  const {
+    calendar: holidayCalendar,
+    isLoading: holidayLoading,
+    error: holidayError
+  } = useHolidayCalendar()
+  const holidaysReady = !holidayLoading && !holidayError
 
   const [timeRange, setTimeRange] = useState<TimeRangeState>({ preset: 'thisWeek' })
   const [selectedAuthors, setSelectedAuthors] = useState<string[] | null>(null)
   const [searchKeyword, setSearchKeyword] = useState<string>('')
+  const [onlyWorkdays, setOnlyWorkdays] = useState(true)
   const [activeTabKey, setActiveTabKey] = useState<'report' | 'changes'>('report')
 
   const { data: activityData, isFetching, isLoading, refetch, error } = useWeeklyActivity(timeRange)
@@ -87,7 +97,7 @@ export function WeeklyReportPage({
     [availableAuthors, selectedAuthors, workbench?.myIdentities]
   )
 
-  const filteredCommits = useMemo((): CommitItem[] => {
+  const matchingCommits = useMemo((): CommitItem[] => {
     const allCommits = activityData?.allCommits ?? []
     return allCommits.filter((c) => {
       if (
@@ -106,6 +116,14 @@ export function WeeklyReportPage({
     })
   }, [activityData?.allCommits, effectiveSelectedAuthors, searchKeyword])
 
+  const filteredCommits = useMemo(
+    () =>
+      onlyWorkdays && holidaysReady
+        ? filterRestDayCommits(matchingCommits, holidayCalendar)
+        : matchingCommits,
+    [holidayCalendar, holidaysReady, matchingCommits, onlyWorkdays]
+  )
+
   const enabledRepos = useMemo(
     () => (workbench?.repositories ?? []).filter((r) => r.enabledForReport),
     [workbench?.repositories]
@@ -115,9 +133,10 @@ export function WeeklyReportPage({
     return buildCommitsWeeklyReportMarkdown(filteredCommits, {
       title: '全仓工作周报',
       timeRangeLabel: activityData?.timeRange.label,
-      groupMode: 'byRepo'
+      showRepo: true,
+      holidayCalendar: holidaysReady ? holidayCalendar : undefined
     })
-  }, [filteredCommits, activityData?.timeRange.label])
+  }, [filteredCommits, activityData?.timeRange.label, holidayCalendar, holidaysReady])
 
   const handleCopyMarkdown = async (): Promise<void> => {
     if (!markdownText.trim()) {
@@ -135,6 +154,11 @@ export function WeeklyReportPage({
   }
 
   const filteredStats = useMemo(() => computeStats(filteredCommits), [filteredCommits])
+  const holidayStats = useMemo(
+    () =>
+      holidaysReady ? computeHolidayActivityStats(filteredCommits, holidayCalendar) : undefined,
+    [filteredCommits, holidayCalendar, holidaysReady]
+  )
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[var(--ant-color-bg-layout)]">
@@ -173,8 +197,8 @@ export function WeeklyReportPage({
         </div>
 
         {/* 第二行：时间筛选与全局搜索 */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <Segmented
               value={timeRange.preset}
               options={timeRangeOptions}
@@ -196,12 +220,11 @@ export function WeeklyReportPage({
             />
 
             {timeRange.preset === 'custom' && (
-              <DatePicker.RangePicker
+              <HolidayRangePicker
                 value={customRangeValue}
-                allowClear={false}
-                onChange={(dates) => {
-                  if (!dates?.[0] || !dates[1]) return
-                  const bounds = customDayBounds(dates[0].toDate(), dates[1].toDate())
+                calendar={holidayCalendar}
+                onChange={(start, end) => {
+                  const bounds = customDayBounds(start.toDate(), end.toDate())
                   setTimeRange({
                     preset: 'custom',
                     customStart: bounds.start.toISOString(),
@@ -212,7 +235,12 @@ export function WeeklyReportPage({
             )}
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <WorkdayFilterControl
+              checked={onlyWorkdays}
+              hiddenCount={matchingCommits.length - filteredCommits.length}
+              onChange={setOnlyWorkdays}
+            />
             <ClosingMultiSelect
               allowClear
               maxTagCount="responsive"
@@ -263,6 +291,9 @@ export function WeeklyReportPage({
                 message={t('workbench.loadFailed', { defaultValue: '获取提交数据失败' })}
                 description={error.message}
               />
+            )}
+            {holidayError && (
+              <Alert type="warning" showIcon className="mb-4" message={t('holidays.loadFailed')} />
             )}
 
             {isLoading ? (
@@ -316,8 +347,9 @@ export function WeeklyReportPage({
                             markdown={buildCommitsWeeklyReportMarkdown(filteredCommits, {
                               title: '全仓工作周报',
                               timeRangeLabel: activityData?.timeRange.label,
-                              groupMode: 'byRepo',
-                              linkCommits: true
+                              showRepo: true,
+                              linkCommits: true,
+                              holidayCalendar: holidaysReady ? holidayCalendar : undefined
                             })}
                             commits={filteredCommits}
                             emptyDescription={t('weeklyReport.emptyMarkdown', {
@@ -348,8 +380,15 @@ export function WeeklyReportPage({
                     ),
                     children: (
                       <div className="flex flex-col gap-3 mt-2">
-                        <StatsHeader stats={filteredStats} showRepoCount={true} />
-                        <WeeklyChangesFeed commits={filteredCommits} />
+                        <StatsHeader
+                          stats={filteredStats}
+                          showRepoCount={true}
+                          holidayStats={holidayStats}
+                        />
+                        <WeeklyChangesFeed
+                          commits={filteredCommits}
+                          holidayCalendar={holidayCalendar}
+                        />
                       </div>
                     )
                   }

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest'
 import { buildCommitsWeeklyReportMarkdown } from '../src/shared/markdown'
-import { parseCommitCategory } from '../src/shared/commit-category'
 import type { CommitItem } from '../src/shared/models'
 
 function commit(partial: Partial<CommitItem> & Pick<CommitItem, 'hash' | 'message'>): CommitItem {
@@ -28,26 +27,44 @@ describe('buildCommitsWeeklyReportMarkdown', () => {
   it('does not generate an empty report', () => {
     expect(buildCommitsWeeklyReportMarkdown([])).toBe('')
   })
-  it('generates categorized commits weekly report markdown', () => {
-    expect(parseCommitCategory('feat(ui): add search bar').key).toBe('feat')
-    expect(parseCommitCategory('fix: memory leak in chart').key).toBe('fix')
-    expect(parseCommitCategory('style: clean up padding').key).toBe('style')
-    expect(parseCommitCategory('random commit without prefix').key).toBe('other')
-
+  it('keeps commits in time order across types and repositories', () => {
     const md = buildCommitsWeeklyReportMarkdown(
       [
-        commit({ hash: '111111111111', message: 'feat: add dashboard' }),
-        commit({ hash: '222222222222', message: 'fix: resolve crash on null' })
+        commit({
+          hash: '111111111111',
+          message: 'fix: morning',
+          authoredAt: '2026-07-20T01:00:00Z',
+          repoName: 'A'
+        }),
+        commit({
+          hash: '222222222222',
+          message: 'style: noon',
+          authoredAt: '2026-07-20T04:00:00Z',
+          repoName: 'B'
+        }),
+        commit({
+          hash: '333333333333',
+          message: 'fix: evening',
+          authoredAt: '2026-07-20T10:00:00Z',
+          repoName: 'A'
+        }),
+        commit({
+          hash: '444444444444',
+          message: 'feat: yesterday',
+          authoredAt: '2026-07-19T10:00:00Z',
+          repoName: 'B'
+        })
       ],
-      { title: '项目周报', timeRangeLabel: '2026/08/31 ~ 2026/09/06' }
+      { title: '项目周报', timeRangeLabel: '2026/08/31 ~ 2026/09/06', showRepo: true }
     )
 
     expect(md).toContain('# 项目周报')
     expect(md).toContain('> 周期：2026/08/31 ~ 2026/09/06')
-    expect(md).toContain('新功能')
-    expect(md).toContain('缺陷修复')
-    expect(md).toContain('feat: add dashboard (`1111111`)')
-    expect(md).toContain('fix: resolve crash on null (`2222222`)')
+    expect(md).toContain('## 2026-07-20')
+    expect(md.indexOf('## 2026-07-20')).toBeLessThan(md.indexOf('## 2026-07-19'))
+    expect(md.indexOf('fix: evening')).toBeLessThan(md.indexOf('style: noon'))
+    expect(md.indexOf('style: noon')).toBeLessThan(md.indexOf('fix: morning'))
+    expect(md).not.toContain('### 缺陷修复')
   })
 
   it('counts identical file paths in different repositories independently', () => {
@@ -59,33 +76,39 @@ describe('buildCommitsWeeklyReportMarkdown', () => {
     expect(md).toContain('2 个文件')
   })
 
-  it('keeps multiline and markdown-like commit data from changing report structure', () => {
+  it('preserves multiline commit details without changing report structure', () => {
     const md = buildCommitsWeeklyReportMarkdown(
       [
         commit({
           hash: '333333333333',
-          message: 'feat: add [report]\n## injected heading',
+          message: 'feat: add [report]\n\n## important detail\n~~~\nsecond line with *markup*',
           repoId: 'r3',
           repoName: 'repo *three*'
         })
       ],
-      { groupMode: 'byRepo' }
+      { showRepo: true }
     )
 
-    expect(md).toContain('## repo \\*three\\*')
-    expect(md).toContain('- feat: add \\[report\\] (`3333333`)')
-    expect(md).not.toContain('injected heading')
+    expect(md).toContain('**repo \\*three\\***')
+    expect(md).toContain('feat: add \\[report\\] (`3333333`)')
+    expect(md).toContain('  ## important detail')
+    expect(md).toContain('  ~~~~text')
+    expect(md).toContain('  ~~~\n')
+    expect(md).toContain('second line with *markup*')
+    expect(md).not.toContain('\n## important detail')
   })
 
-  it('keeps same-name repositories as separate report groups', () => {
+  it('keeps same-name repositories as separate commit references', () => {
     const md = buildCommitsWeeklyReportMarkdown(
       [
         commit({ hash: '444444444444', message: 'feat: one', repoId: 'r4', repoName: 'same' }),
         commit({ hash: '555555555555', message: 'fix: two', repoId: 'r5', repoName: 'same' })
       ],
-      { groupMode: 'byRepo' }
+      { showRepo: true }
     )
 
-    expect(md.match(/^## same$/gm)).toHaveLength(2)
+    expect(md.match(/\*\*same\*\*/g)).toHaveLength(2)
+    expect(md).toContain('`4444444`')
+    expect(md).toContain('`5555555`')
   })
 })

@@ -23,6 +23,21 @@ export interface ParsedDiffFile {
   hunks: DiffHunk[]
 }
 
+export function prioritizeDiffFile(
+  files: ParsedDiffFile[],
+  selectedPath?: string
+): { files: ParsedDiffFile[]; focused: boolean } {
+  if (!selectedPath) return { files, focused: false }
+  const index = files.findIndex(
+    (file) => file.newPath === selectedPath || file.oldPath === selectedPath
+  )
+  if (index < 0) return { files, focused: false }
+  return {
+    files: [files[index], ...files.filter((_, fileIndex) => fileIndex !== index)],
+    focused: true
+  }
+}
+
 function stripPathPrefix(value: string): string | null {
   const path = value.trim()
   if (path === '/dev/null') return null

@@ -63,20 +63,20 @@ it('opens the exact repository and full hash even when all visible short hashes 
     }
   ]
   const markdown = buildCommitsWeeklyReportMarkdown(commits, {
-    groupMode: 'byRepo',
+    showRepo: true,
     linkCommits: true
   })
   renderToStaticMarkup(createElement(MarkdownReportPreview, { markdown, commits }))
   expect(clicks).toHaveLength(3)
-  // 按工程分组后 A 的两条在前，B 的共享提交在后。
+  // 跨工程也保持时间倒序，短 hash 相同仍定位到各自完整提交。
   clicks.forEach((click) => click())
-  expect(select.mock.calls.map(([value]) => value)).toEqual([commits[0], commits[2], commits[1]])
+  expect(select.mock.calls.map(([value]) => value)).toEqual([commits[2], commits[1], commits[0]])
   expect(timestamps.map((value) => value.slice(0, 10))).toEqual([
-    '2026-09-01',
     '2026-09-03',
-    '2026-09-02'
+    '2026-09-02',
+    '2026-09-01'
   ])
-  const copied = buildCommitsWeeklyReportMarkdown(commits, { groupMode: 'byRepo' })
+  const copied = buildCommitsWeeklyReportMarkdown(commits, { showRepo: true })
   expect(copied).not.toContain('#commit/')
   expect(copied).toContain('(`abcdef1`)')
 })

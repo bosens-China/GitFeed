@@ -10,7 +10,9 @@ import {
   type TimeRangeState
 } from '@shared/models'
 import { collectAuthors, computeStats } from '@shared/commit-utils'
+import { computeHolidayActivityStats, filterRestDayCommits } from '@shared/holiday-calendar'
 import { useWeeklyActivity, useWorkbench } from '@renderer/hooks/useWorkbench'
+import { useHolidayCalendar } from '@renderer/hooks/useHolidayCalendar'
 import { AggregatedCommitFeed } from './AggregatedCommitFeed'
 import { RepositoryQueryErrors } from './RepositoryQueryErrors'
 import { ProjectReportTab } from './ProjectReportTab'
@@ -24,10 +26,17 @@ interface ThisWeekPageProps {
 export function ThisWeekPage({ selectedRepoId }: ThisWeekPageProps): React.JSX.Element {
   const { t } = useTranslation()
   const { state: workbench, saveProjectView } = useWorkbench()
+  const {
+    calendar: holidayCalendar,
+    isLoading: holidayLoading,
+    error: holidayError
+  } = useHolidayCalendar()
+  const holidaysReady = !holidayLoading && !holidayError
 
   const [timeRange, setTimeRange] = useState<TimeRangeState>({ preset: 'thisWeek' })
   const [selectedAuthors, setSelectedAuthors] = useState<string[] | null>(null)
   const [searchKeyword, setSearchKeyword] = useState<string>('')
+  const [onlyWorkdays, setOnlyWorkdays] = useState(true)
   const [activeTabKey, setActiveTabKey] = useState<ProjectViewTab>('report')
   const [analysisBranch, setAnalysisBranch] = useState<string | null>(null)
   const [memoryReady, setMemoryReady] = useState(false)
@@ -128,7 +137,7 @@ export function ThisWeekPage({ selectedRepoId }: ThisWeekPageProps): React.JSX.E
     timeRange
   ])
 
-  const filteredCommits = useMemo((): CommitItem[] => {
+  const matchingCommits = useMemo((): CommitItem[] => {
     const allCommits = activityData?.allCommits ?? []
     return allCommits.filter((c) => {
       if (
@@ -143,8 +152,21 @@ export function ThisWeekPage({ selectedRepoId }: ThisWeekPageProps): React.JSX.E
     })
   }, [activityData?.allCommits, effectiveSelectedAuthors, searchKeyword])
 
+  const filteredCommits = useMemo(
+    () =>
+      onlyWorkdays && holidaysReady
+        ? filterRestDayCommits(matchingCommits, holidayCalendar)
+        : matchingCommits,
+    [holidayCalendar, holidaysReady, matchingCommits, onlyWorkdays]
+  )
+
   const currentRepoName = currentRepo?.name ?? '当前工程'
   const currentStats = useMemo(() => computeStats(filteredCommits), [filteredCommits])
+  const holidayStats = useMemo(
+    () =>
+      holidaysReady ? computeHolidayActivityStats(filteredCommits, holidayCalendar) : undefined,
+    [filteredCommits, holidayCalendar, holidaysReady]
+  )
 
   return (
     <div className="flex h-full flex-col overflow-hidden bg-[var(--ant-color-bg-layout)]">
@@ -161,6 +183,10 @@ export function ThisWeekPage({ selectedRepoId }: ThisWeekPageProps): React.JSX.E
         onAnalysisBranchChange={setAnalysisBranch}
         isRefreshing={isFetching}
         onRefresh={() => refetch()}
+        holidayCalendar={holidayCalendar}
+        onlyWorkdays={onlyWorkdays}
+        hiddenRestCommitCount={matchingCommits.length - filteredCommits.length}
+        onOnlyWorkdaysChange={setOnlyWorkdays}
       />
 
       <div className="min-h-0 flex-1 overflow-auto p-4 md:p-6">
@@ -173,6 +199,9 @@ export function ThisWeekPage({ selectedRepoId }: ThisWeekPageProps): React.JSX.E
             message={t('workbench.loadFailed', { defaultValue: '获取提交数据失败' })}
             description={error.message}
           />
+        )}
+        {holidayError && (
+          <Alert type="warning" showIcon className="mb-4" message={t('holidays.loadFailed')} />
         )}
 
         {isLoading ? (
@@ -198,6 +227,7 @@ export function ThisWeekPage({ selectedRepoId }: ThisWeekPageProps): React.JSX.E
                     repoName={currentRepoName}
                     timeRangeLabel={activityData?.timeRange.label}
                     commits={filteredCommits}
+                    holidayCalendar={holidaysReady ? holidayCalendar : undefined}
                   />
                 )
               },
@@ -214,8 +244,15 @@ export function ThisWeekPage({ selectedRepoId }: ThisWeekPageProps): React.JSX.E
                 ),
                 children: (
                   <div className="flex flex-col gap-3 mt-2">
-                    <StatsHeader stats={currentStats} showRepoCount={false} />
-                    <AggregatedCommitFeed commits={filteredCommits} />
+                    <StatsHeader
+                      stats={currentStats}
+                      showRepoCount={false}
+                      holidayStats={holidayStats}
+                    />
+                    <AggregatedCommitFeed
+                      commits={filteredCommits}
+                      holidayCalendar={holidayCalendar}
+                    />
                   </div>
                 )
               }

@@ -3,18 +3,21 @@ import { Copy, FileText } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { buildCommitsWeeklyReportMarkdown } from '@shared/markdown'
 import type { CommitItem } from '@shared/models'
+import type { HolidayCalendar } from '@shared/holiday-calendar'
 import { MarkdownReportPreview } from './MarkdownReportPreview'
 
 interface ProjectReportTabProps {
   repoName: string
   timeRangeLabel?: string
   commits: CommitItem[]
+  holidayCalendar?: HolidayCalendar
 }
 
 export function ProjectReportTab({
   repoName,
   timeRangeLabel,
-  commits
+  commits,
+  holidayCalendar
 }: ProjectReportTabProps): React.JSX.Element {
   const { t } = useTranslation()
   const { message } = App.useApp()
@@ -22,7 +25,7 @@ export function ProjectReportTab({
   const markdownText = buildCommitsWeeklyReportMarkdown(commits, {
     title: `${repoName} 工作周报`,
     timeRangeLabel,
-    groupMode: 'singleRepo'
+    holidayCalendar
   })
 
   const handleCopy = async (): Promise<void> => {
@@ -71,8 +74,8 @@ export function ProjectReportTab({
           markdown={buildCommitsWeeklyReportMarkdown(commits, {
             title: `${repoName} 工作周报`,
             timeRangeLabel,
-            groupMode: 'singleRepo',
-            linkCommits: true
+            linkCommits: true,
+            holidayCalendar
           })}
           commits={commits}
           emptyDescription={t('thisWeek.noCommits', { defaultValue: '当前筛选范围内无提交记录' })}

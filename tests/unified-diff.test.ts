@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { defaultSelectedAuthorKeys } from '../src/shared/models'
-import { parseUnifiedDiff } from '../src/shared/unified-diff'
+import { parseUnifiedDiff, prioritizeDiffFile } from '../src/shared/unified-diff'
 
 describe('parseUnifiedDiff', () => {
   it('aligns replacement lines and preserves context line numbers', () => {
@@ -50,6 +50,31 @@ Binary files a/logo.png and b/logo.png differ`)
     })
     expect(files[1].binary).toBe(true)
   })
+})
+
+it('opens a selected renamed file first without removing other diff files', () => {
+  const files = parseUnifiedDiff(`diff --git a/first.txt b/first.txt
+--- a/first.txt
++++ b/first.txt
+@@ -1 +1 @@
+-old
++new
+diff --git a/old-name.txt b/new-name.txt
+similarity index 80%
+rename from old-name.txt
+rename to new-name.txt
+--- a/old-name.txt
++++ b/new-name.txt
+@@ -1 +1 @@
+-old
++new`)
+
+  const focused = prioritizeDiffFile(files, 'new-name.txt')
+  expect(focused.focused).toBe(true)
+  expect(focused.files.map((file) => file.newPath)).toEqual(['new-name.txt', 'first.txt'])
+  expect(prioritizeDiffFile(files, 'old-name.txt').focused).toBe(true)
+  expect(prioritizeDiffFile(files, 'missing.txt')).toEqual({ files, focused: false })
+  expect(files[0].newPath).toBe('first.txt')
 })
 
 describe('defaultSelectedAuthorKeys', () => {

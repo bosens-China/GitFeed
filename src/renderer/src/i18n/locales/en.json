@@ -209,6 +209,9 @@
     "lastWeek": "Last Week",
     "lastMonth": "Last Month",
     "custom": "Custom",
+    "onlyWorkdays": "Workdays only",
+    "workdaysHint": "Hide commits on known rest days by default. Make-up workdays and dates without holiday data remain visible. Turn off to show every date.",
+    "hiddenRestCommits": "{{count}} hidden",
     "filterAuthors": "All Authors",
     "noAuthors": "No authors in this range",
     "analysisBranch": "View branch",
@@ -231,7 +234,16 @@
     "activeDays": "Active Days",
     "additions": "Additions",
     "deletions": "Deletions",
-    "filesChanged": "Files Changed"
+    "filesChanged": "Files Changed",
+    "activeWorkdays": "Active Workdays",
+    "activeRestDays": "Active Rest Days",
+    "holidayDataIncomplete": "Holiday data is missing for {{count}} active dates, so workday totals are unavailable"
+  },
+  "holidays": {
+    "offDay": "Day off",
+    "restDay": "Rest day",
+    "makeupWorkday": "Make-up workday",
+    "loadFailed": "Holiday data could not be loaded; date labels, workday filtering, and totals are unavailable"
   },
   "errors": {
     "NOT_GIT": "Not a valid Git repository",

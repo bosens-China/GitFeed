@@ -19,7 +19,7 @@ const commit: CommitItem = {
   authorName: 'Ann',
   authorEmail: 'ann@example.com',
   authoredAt: '2026-09-04T08:00:00.000Z',
-  message: 'feat(web): support energy_system',
+  message: 'feat(web): support energy_system\n\n## implementation detail',
   isMerge: false,
   branch: 'main',
   repoId: '/tmp/energy_system',
@@ -38,7 +38,7 @@ describe('MarkdownReportPreview', () => {
           null,
           createElement(MarkdownReportPreview, {
             markdown: buildCommitsWeeklyReportMarkdown([commit], {
-              groupMode: 'byRepo',
+              showRepo: true,
               linkCommits: true
             }),
             commits: [commit]
@@ -49,6 +49,8 @@ describe('MarkdownReportPreview', () => {
 
     expect(html).toContain('energy_system')
     expect(html).toContain('feat(web): support')
+    expect(html).toContain('## implementation detail')
+    expect(html).not.toContain('<h2>implementation detail</h2>')
     expect(html).not.toContain('energy\\_system')
     expect(html).toContain('<button')
     expect(html).toContain('a10cb4a')
