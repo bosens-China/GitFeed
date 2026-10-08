@@ -49,6 +49,7 @@ function localizeMainProcessError(
 
 export function useWorkbench(): {
   state: WorkbenchState | undefined
+  error: Error | null
   isLoading: boolean
   addRepository: () => void
   removeRepository: (id: string) => void
@@ -134,6 +135,7 @@ export function useWorkbench(): {
 
   return {
     state: query.data,
+    error: query.error as Error | null,
     isLoading: query.isLoading,
     addRepository: () => addMutation.mutate(),
     removeRepository: (id: string) => removeMutation.mutate(id),

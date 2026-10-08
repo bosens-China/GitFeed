@@ -65,3 +65,17 @@ it.each([
     )
   }
 )
+
+it.each(['{"repositories": [', '{"repositories": [{}]}'])(
+  'does not overwrite a damaged configuration during a mutation: %s',
+  async (damaged) => {
+    const file = path.join(storage.directory, 'workbench.json')
+    await fs.writeFile(file, damaged)
+
+    await expect(readWorkbenchState()).rejects.toThrow('配置文件')
+    await expect(updateRepositoryRecord('repo', { enabledForReport: false })).rejects.toThrow(
+      '配置文件'
+    )
+    expect(await fs.readFile(file, 'utf8')).toBe(damaged)
+  }
+)

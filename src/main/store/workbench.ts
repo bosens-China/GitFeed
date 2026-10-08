@@ -27,30 +27,49 @@ function emptyState(): WorkbenchState {
 }
 
 export async function readWorkbenchState(): Promise<WorkbenchState> {
+  let raw: string
   try {
-    const raw = await fs.readFile(storePath(), 'utf8')
-    const parsed = JSON.parse(raw) as WorkbenchState & { version: number }
-    if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed.repositories)) {
-      return emptyState()
-    }
+    raw = await fs.readFile(storePath(), 'utf8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return emptyState()
+    throw error
+  }
 
-    const repositories = parsed.repositories.map(normalizeRepository)
-    const activeRepositoryId = repositories.some((repo) => repo.id === parsed.activeRepositoryId)
-      ? parsed.activeRepositoryId
-      : (repositories[0]?.id ?? null)
-
-    const myIdentities = Array.isArray(parsed.myIdentities) ? parsed.myIdentities : []
-    const includeMergeDefault = Boolean(parsed.includeMergeDefault)
-
-    return {
-      version: STORE_VERSION,
-      repositories,
-      activeRepositoryId,
-      myIdentities,
-      includeMergeDefault
-    }
+  let parsed: WorkbenchState
+  try {
+    parsed = JSON.parse(raw) as WorkbenchState
   } catch {
-    return emptyState()
+    throw new Error('GitFeed 配置文件已损坏，已保留原文件，请从备份恢复或检查 workbench.json')
+  }
+  if (
+    !parsed ||
+    typeof parsed !== 'object' ||
+    !Array.isArray(parsed.repositories) ||
+    parsed.repositories.some(
+      (repo) =>
+        !repo ||
+        typeof repo.id !== 'string' ||
+        typeof repo.path !== 'string' ||
+        typeof repo.name !== 'string'
+    )
+  ) {
+    throw new Error('GitFeed 配置文件格式无效，已保留原文件，请检查 workbench.json')
+  }
+
+  const repositories = parsed.repositories.map(normalizeRepository)
+  const activeRepositoryId = repositories.some((repo) => repo.id === parsed.activeRepositoryId)
+    ? parsed.activeRepositoryId
+    : (repositories[0]?.id ?? null)
+
+  const myIdentities = Array.isArray(parsed.myIdentities) ? parsed.myIdentities : []
+  const includeMergeDefault = Boolean(parsed.includeMergeDefault)
+
+  return {
+    version: STORE_VERSION,
+    repositories,
+    activeRepositoryId,
+    myIdentities,
+    includeMergeDefault
   }
 }
 
