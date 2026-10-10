@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.1](https://github.com/bosens-China/GitFeed/compare/v1.3.0...v1.3.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **filters:** 统一时间筛选控件并修正对齐 ([b8cf6fc](https://github.com/bosens-China/GitFeed/commit/b8cf6fc7865cad9f184126af296231f3080790ff))
+* **time:** 按完整自然周和自然月解析预设范围 ([e488ccd](https://github.com/bosens-China/GitFeed/commit/e488ccdf87ca43706775e3a3530795d911551ea8))
+
 ## [1.3.0](https://github.com/bosens-China/GitFeed/compare/v1.2.0...v1.3.0) (2026-10-08)
 
 
