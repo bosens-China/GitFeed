@@ -2,29 +2,52 @@ import { describe, expect, it } from 'vitest'
 import { customDayBounds, localDateKey, resolveTimeRange } from '../src/shared/time-range'
 
 describe('resolveTimeRange', () => {
-  it('resolves thisWeek as Monday 00:00 to now (left-closed right-open label)', () => {
-    const now = new Date(2026, 6, 20, 15, 30, 0) // Monday
-    const range = resolveTimeRange({ preset: 'thisWeek' }, now)
-    expect(range.start).toEqual(new Date(2026, 6, 20, 0, 0, 0, 0))
-    expect(range.end).toEqual(now)
-  })
+  it.each([5, 10, 11])(
+    'resolves thisWeek as the whole Monday–Sunday period on October %s',
+    (day) => {
+      const now = new Date(2026, 9, day, 15, 30)
+      const range = resolveTimeRange({ preset: 'thisWeek' }, now)
+      expect(range.start).toEqual(new Date(2026, 9, 5))
+      expect(range.end).toEqual(new Date(2026, 9, 12))
+      expect(range.label).toContain('2026-10-05 00:00 ～ 2026-10-11 23:59')
+    }
+  )
 
   it('resolves lastWeek as previous Monday to this Monday', () => {
     const now = new Date(2026, 6, 22, 12, 0, 0) // Wednesday
     const range = resolveTimeRange({ preset: 'lastWeek' }, now)
     expect(range.start).toEqual(new Date(2026, 6, 13, 0, 0, 0, 0))
     expect(range.end).toEqual(new Date(2026, 6, 20, 0, 0, 0, 0))
+    expect(range.label).toContain('2026-07-19 23:59')
   })
 
   it('resolves thisMonth and lastMonth boundaries', () => {
     const now = new Date(2026, 6, 20, 18, 0, 0)
     const thisMonth = resolveTimeRange({ preset: 'thisMonth' }, now)
     expect(thisMonth.start).toEqual(new Date(2026, 6, 1, 0, 0, 0, 0))
-    expect(thisMonth.end).toEqual(now)
+    expect(thisMonth.end).toEqual(new Date(2026, 7, 1))
+    expect(thisMonth.label).toContain('2026-07-31 23:59')
 
     const lastMonth = resolveTimeRange({ preset: 'lastMonth' }, now)
     expect(lastMonth.start).toEqual(new Date(2026, 5, 1, 0, 0, 0, 0))
     expect(lastMonth.end).toEqual(new Date(2026, 6, 1, 0, 0, 0, 0))
+    expect(lastMonth.label).toContain('2026-06-30 23:59')
+  })
+
+  it.each([
+    [2026, 9, 1, 31],
+    [2026, 9, 31, 31],
+    [2024, 1, 1, 29],
+    [2025, 1, 28, 28],
+    [2026, 11, 31, 31],
+    [2026, 3, 1, 30]
+  ])('uses the complete month for %s/%s/%s', (year, month, day, lastDay) => {
+    const range = resolveTimeRange({ preset: 'thisMonth' }, new Date(year, month, day, 12))
+    expect(range.start).toEqual(new Date(year, month, 1))
+    expect(range.end).toEqual(new Date(year, month + 1, 1))
+    expect(localDateKey(new Date(range.end.getTime() - 1))).toBe(
+      localDateKey(new Date(year, month, lastDay))
+    )
   })
 
   it('uses custom closed bounds 00:00:00 ~ 23:59:59.999', () => {
@@ -68,7 +91,8 @@ describe('resolveTimeRange', () => {
     const wednesday = new Date(2025, 0, 1, 12, 0, 0) // Wed Jan 1 2025
     const thisWeek = resolveTimeRange({ preset: 'thisWeek' }, wednesday)
     expect(thisWeek.start).toEqual(new Date(2024, 11, 30, 0, 0, 0, 0))
-    expect(thisWeek.end).toEqual(wednesday)
+    expect(thisWeek.end).toEqual(new Date(2025, 0, 6))
+    expect(thisWeek.label).toContain('2025-01-05 23:59')
   })
 })
 

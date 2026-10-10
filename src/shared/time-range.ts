@@ -20,6 +20,10 @@ function formatDateTime(date: Date): string {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
+function formatTimeRangeLabel(start: Date, end: Date, timezone: string): string {
+  return `${formatDateTime(start)} ～ ${formatDateTime(end)}（${timezone}）`
+}
+
 export function localDateKey(value: string | Date): string {
   const date = value instanceof Date ? value : new Date(value)
   if (Number.isNaN(date.getTime())) {
@@ -51,17 +55,18 @@ export function resolveTimeRange(state: TimeRangeState, now = new Date()): Resol
     return {
       start,
       end,
-      label: `${formatDateTime(start)} ～ ${formatDateTime(end)}（${timezone}）`,
+      label: formatTimeRangeLabel(start, end, timezone),
       timezone
     }
   }
 
   if (state.preset === 'thisWeek') {
     const start = startOfWeekMonday(now)
+    const end = new Date(start.getFullYear(), start.getMonth(), start.getDate() + 7)
     return {
       start,
-      end: now,
-      label: `${formatDateTime(start)} ～ ${formatDateTime(now)}（${timezone}）`,
+      end,
+      label: formatTimeRangeLabel(start, new Date(end.getTime() - 1), timezone),
       timezone
     }
   }
@@ -73,17 +78,18 @@ export function resolveTimeRange(state: TimeRangeState, now = new Date()): Resol
     return {
       start,
       end: thisMonday,
-      label: `${formatDateTime(start)} ～ ${formatDateTime(thisMonday)}（${timezone}）`,
+      label: formatTimeRangeLabel(start, new Date(thisMonday.getTime() - 1), timezone),
       timezone
     }
   }
 
   if (state.preset === 'thisMonth') {
     const start = startOfMonth(now)
+    const end = new Date(start.getFullYear(), start.getMonth() + 1, 1)
     return {
       start,
-      end: now,
-      label: `${formatDateTime(start)} ～ ${formatDateTime(now)}（${timezone}）`,
+      end,
+      label: formatTimeRangeLabel(start, new Date(end.getTime() - 1), timezone),
       timezone
     }
   }
@@ -93,7 +99,7 @@ export function resolveTimeRange(state: TimeRangeState, now = new Date()): Resol
   return {
     start,
     end: thisMonthStart,
-    label: `${formatDateTime(start)} ～ ${formatDateTime(thisMonthStart)}（${timezone}）`,
+    label: formatTimeRangeLabel(start, new Date(thisMonthStart.getTime() - 1), timezone),
     timezone
   }
 }

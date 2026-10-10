@@ -7,6 +7,7 @@ import {
 } from '../src/shared/holiday-calendar'
 import type { CommitItem } from '../src/shared/models'
 import { buildCommitsWeeklyReportMarkdown } from '../src/shared/markdown'
+import { resolveTimeRange } from '../src/shared/time-range'
 import bundled2026 from '../src/main/holidays/2026.json'
 
 function commit(date: string, message = 'fix: example'): CommitItem {
@@ -97,3 +98,37 @@ it('adds date context to Markdown without regrouping commits', () => {
   expect(markdown).toContain('活跃工作日 1 天，活跃休息日 1 天')
   expect(markdown.indexOf('style: later')).toBeLessThan(markdown.indexOf('fix: earlier'))
 })
+
+it.each(['thisWeek', 'thisMonth', 'custom'] as const)(
+  'filters rest days and keeps make-up workdays without changing the %s period',
+  (preset) => {
+    const range = resolveTimeRange(
+      {
+        preset,
+        customStart: new Date(2026, 9, 1).toISOString(),
+        customEnd: new Date(2026, 9, 11, 23, 59, 59, 999).toISOString()
+      },
+      new Date(2026, 9, 10, 15, 30)
+    )
+    const before = { ...range }
+    const commits = Array.from({ length: 11 }, (_, i) =>
+      commit(`2026-10-${String(i + 1).padStart(2, '0')}`)
+    ).filter(
+      (item) => new Date(item.authoredAt) >= range.start && new Date(item.authoredAt) < range.end
+    )
+    expect(filterRestDayCommits(commits, calendar).map((item) => item.hash)).toEqual([
+      '2026-10-08',
+      '2026-10-09',
+      '2026-10-10'
+    ])
+    expect(range).toEqual(before)
+    expect(range.start).toEqual(new Date(2026, 9, preset === 'thisWeek' ? 5 : 1))
+    expect(range.label).toContain(
+      preset === 'thisWeek'
+        ? '2026-10-11 23:59'
+        : preset === 'thisMonth'
+          ? '2026-10-31 23:59'
+          : '2026-10-11 23:59'
+    )
+  }
+)
