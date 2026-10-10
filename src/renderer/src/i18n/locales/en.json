@@ -206,12 +206,13 @@
     "unknownFile": "Unknown file"
   },
   "filterBar": {
+    "thisMonth": "This Month",
     "thisWeek": "This Week",
     "lastWeek": "Last Week",
     "lastMonth": "Last Month",
     "custom": "Custom",
     "onlyWorkdays": "Workdays only",
-    "workdaysHint": "Hide commits on known rest days by default. Make-up workdays and dates without holiday data remain visible. Turn off to show every date.",
+    "workdaysHint": "Hide commits on known rest days. Make-up workdays and unknown dates remain visible. Preset and custom date ranges stay unchanged. Turn off to show every date.",
     "hiddenRestCommits": "{{count}} hidden",
     "filterAuthors": "All Authors",
     "noAuthors": "No authors in this range",

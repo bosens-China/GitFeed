@@ -9,6 +9,7 @@ import {
   type ProjectViewTab,
   type TimeRangeState
 } from '@shared/models'
+import { resolveTimeRange } from '@shared/time-range'
 import { collectAuthors, computeStats } from '@shared/commit-utils'
 import { computeHolidayActivityStats, filterRestDayCommits } from '@shared/holiday-calendar'
 import { useWeeklyActivity, useWorkbench } from '@renderer/hooks/useWorkbench'
@@ -83,6 +84,8 @@ export function ThisWeekPage({ selectedRepoId }: ThisWeekPageProps): React.JSX.E
     currentRepo && analysisBranch ? { repoId: currentRepo.id, branch: analysisBranch } : undefined,
     selectedRepoId
   )
+
+  const reportTimeRange = activityData?.timeRange ?? resolveTimeRange(timeRange)
 
   const availableAuthors = useMemo(
     () => collectAuthors(activityData?.allCommits ?? []).filter((author) => author.name),
@@ -172,6 +175,7 @@ export function ThisWeekPage({ selectedRepoId }: ThisWeekPageProps): React.JSX.E
     <div className="flex h-full flex-col overflow-hidden bg-[var(--ant-color-bg-layout)]">
       <ThisWeekFilterBar
         timeRange={timeRange}
+        reportTimeRange={reportTimeRange}
         onTimeRangeChange={setTimeRange}
         currentRepo={currentRepo}
         searchKeyword={searchKeyword}
@@ -225,7 +229,7 @@ export function ThisWeekPage({ selectedRepoId }: ThisWeekPageProps): React.JSX.E
                 children: (
                   <ProjectReportTab
                     repoName={currentRepoName}
-                    timeRangeLabel={activityData?.timeRange.label}
+                    timeRangeLabel={reportTimeRange.label}
                     commits={filteredCommits}
                     holidayCalendar={holidaysReady ? holidayCalendar : undefined}
                   />

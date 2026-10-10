@@ -1,4 +1,4 @@
-import { Space, Switch, Tag, Tooltip } from 'antd'
+import { Switch, Tag, Tooltip } from 'antd'
 import { useTranslation } from 'react-i18next'
 
 interface WorkdayFilterControlProps {
@@ -14,7 +14,7 @@ export function WorkdayFilterControl({
 }: WorkdayFilterControlProps): React.JSX.Element {
   const { t } = useTranslation()
   return (
-    <Space size={6}>
+    <div className="flex min-h-8 shrink-0 items-center gap-1.5">
       <Tooltip title={t('filterBar.workdaysHint')}>
         <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs">
           <Switch
@@ -31,6 +31,6 @@ export function WorkdayFilterControl({
           {t('filterBar.hiddenRestCommits', { count: hiddenCount })}
         </Tag>
       )}
-    </Space>
+    </div>
   )
 }

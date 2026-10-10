@@ -206,12 +206,13 @@
     "unknownFile": "未知文件"
   },
   "filterBar": {
+    "thisMonth": "本月",
     "thisWeek": "本周",
     "lastWeek": "上周",
     "lastMonth": "上个月",
     "custom": "自定义",
     "onlyWorkdays": "仅工作日",
-    "workdaysHint": "默认隐藏已确认的休息日提交；调休上班日和缺少节假日数据的日期会保留。关闭后查看全部日期。",
+    "workdaysHint": "仅隐藏已确认的休息日提交，调休上班日和未知日期保留。预设和自定义的起止日期均不改变。关闭后查看全部日期。",
     "hiddenRestCommits": "已隐藏 {{count}} 条",
     "filterAuthors": "全部作者",
     "noAuthors": "当前范围暂无作者",

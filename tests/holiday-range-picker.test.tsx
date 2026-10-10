@@ -9,13 +9,16 @@ import bundled2026 from '../src/main/holidays/2026.json'
 vi.mock('antd', () => ({
   DatePicker: {
     RangePicker: ({
-      cellRender
+      cellRender,
+      renderExtraFooter
     }: {
+      renderExtraFooter: () => React.ReactNode
       cellRender: (date: Dayjs, info: { type: 'date'; originNode: ReactElement }) => React.ReactNode
     }) =>
       createElement(
         'div',
         null,
+        renderExtraFooter(),
         ...['2026-10-01', '2026-10-10', '2026-10-11', '2027-01-02'].map((date) =>
           createElement(
             'div',

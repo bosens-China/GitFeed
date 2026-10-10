@@ -1,17 +1,16 @@
-import { Button, Input, Segmented, Select, Tag, Tooltip } from 'antd'
+import { Button, Input, Select, Tag, Tooltip } from 'antd'
 import { FolderGit2, GitBranch, RefreshCw, Search } from 'lucide-react'
-import dayjs, { type Dayjs } from 'dayjs'
 import { useTranslation } from 'react-i18next'
-import type { RepositoryRecord, TimeRangePreset, TimeRangeState } from '@shared/models'
-import { customDayBounds } from '@shared/time-range'
+import type { RepositoryRecord, ResolvedTimeRange, TimeRangeState } from '@shared/models'
 import { ClosingMultiSelect } from '@renderer/components/ClosingMultiSelect'
-import { HolidayRangePicker } from '@renderer/components/HolidayRangePicker'
+import { TimeRangeControl } from '@renderer/components/TimeRangeControl'
 import { WorkdayFilterControl } from '@renderer/components/WorkdayFilterControl'
 import type { HolidayCalendar } from '@shared/holiday-calendar'
 
 const CONFIGURED_BRANCHES_VALUE = '\u0000configured-branches'
 
 interface ThisWeekFilterBarProps {
+  reportTimeRange: ResolvedTimeRange
   timeRange: TimeRangeState
   onTimeRangeChange: (next: TimeRangeState) => void
   currentRepo?: RepositoryRecord
@@ -32,6 +31,7 @@ interface ThisWeekFilterBarProps {
 
 export function ThisWeekFilterBar({
   timeRange,
+  reportTimeRange,
   onTimeRangeChange,
   currentRepo,
   searchKeyword,
@@ -49,18 +49,6 @@ export function ThisWeekFilterBar({
   onOnlyWorkdaysChange
 }: ThisWeekFilterBarProps): React.JSX.Element {
   const { t } = useTranslation()
-
-  const timeRangeOptions = [
-    { label: t('filterBar.thisWeek', { defaultValue: '本周' }), value: 'thisWeek' },
-    { label: t('filterBar.lastWeek', { defaultValue: '上周' }), value: 'lastWeek' },
-    { label: t('filterBar.lastMonth', { defaultValue: '上个月' }), value: 'lastMonth' },
-    { label: t('filterBar.custom', { defaultValue: '自定义' }), value: 'custom' }
-  ]
-
-  const customRangeValue: [Dayjs, Dayjs] | null =
-    timeRange.preset === 'custom' && timeRange.customStart && timeRange.customEnd
-      ? [dayjs(timeRange.customStart), dayjs(timeRange.customEnd)]
-      : null
 
   const configuredBranches = currentRepo?.selectedBranches ?? []
   const availableBranches = currentRepo?.availableBranches ?? []
@@ -293,44 +281,14 @@ export function ThisWeekFilterBar({
         </div>
       </div>
 
-      {/* 第二行：时间范围筛选、作者下拉与提交信息搜索 */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <Segmented
-            value={timeRange.preset}
-            options={timeRangeOptions}
-            onChange={(val) => {
-              const preset = val as TimeRangePreset
-              if (preset === 'custom') {
-                const end = dayjs()
-                const start = end.startOf('day')
-                const bounds = customDayBounds(start.toDate(), end.toDate())
-                onTimeRangeChange({
-                  preset: 'custom',
-                  customStart: bounds.start.toISOString(),
-                  customEnd: bounds.end.toISOString()
-                })
-              } else {
-                onTimeRangeChange({ preset })
-              }
-            }}
-          />
-
-          {timeRange.preset === 'custom' ? (
-            <HolidayRangePicker
-              value={customRangeValue}
-              calendar={holidayCalendar}
-              onChange={(start, end) => {
-                const bounds = customDayBounds(start.toDate(), end.toDate())
-                onTimeRangeChange({
-                  preset: 'custom',
-                  customStart: bounds.start.toISOString(),
-                  customEnd: bounds.end.toISOString()
-                })
-              }}
-            />
-          ) : null}
-        </div>
+      {/* 时间筛选与提交筛选分行排列 */}
+      <div className="flex flex-col gap-3">
+        <TimeRangeControl
+          state={timeRange}
+          range={reportTimeRange}
+          calendar={holidayCalendar}
+          onChange={onTimeRangeChange}
+        />
 
         <div className="flex flex-wrap items-center gap-3">
           <WorkdayFilterControl
@@ -341,7 +299,7 @@ export function ThisWeekFilterBar({
           <ClosingMultiSelect
             allowClear
             maxTagCount="responsive"
-            className="min-w-36 max-w-56"
+            className="w-48 max-w-full"
             placeholder={t('filterBar.filterAuthors', { defaultValue: '全部作者' })}
             value={selectedAuthors}
             options={authorOptions}

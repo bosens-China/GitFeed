@@ -1,33 +1,17 @@
 import { collectAuthors, computeStats } from '@shared/commit-utils'
 import { computeHolidayActivityStats, filterRestDayCommits } from '@shared/holiday-calendar'
 import { useMemo, useState } from 'react'
-import {
-  Alert,
-  App,
-  Button,
-  Card,
-  Empty,
-  Input,
-  Segmented,
-  Space,
-  Spin,
-  Tabs,
-  Tag,
-  Tooltip
-} from 'antd'
+import { Alert, App, Button, Card, Empty, Input, Space, Spin, Tabs, Tag, Tooltip } from 'antd'
 import { Copy, FileText, GitCommit, RefreshCw, Search } from 'lucide-react'
-import dayjs, { type Dayjs } from 'dayjs'
-import isoWeek from 'dayjs/plugin/isoWeek'
 import { useTranslation } from 'react-i18next'
 import { buildCommitsWeeklyReportMarkdown } from '@shared/markdown'
 import {
   authorKey,
   defaultSelectedAuthorKeys,
   type CommitItem,
-  type TimeRangePreset,
   type TimeRangeState
 } from '@shared/models'
-import { customDayBounds } from '@shared/time-range'
+import { resolveTimeRange } from '@shared/time-range'
 import { useWeeklyActivity, useWorkbench } from '@renderer/hooks/useWorkbench'
 import { useHolidayCalendar } from '@renderer/hooks/useHolidayCalendar'
 import { WeeklyChangesFeed } from './WeeklyChangesFeed'
@@ -35,10 +19,8 @@ import { StatsHeader } from '../this-week/StatsHeader'
 import { RepositoryQueryErrors } from '../this-week/RepositoryQueryErrors'
 import { MarkdownReportPreview } from '../this-week/MarkdownReportPreview'
 import { ClosingMultiSelect } from '@renderer/components/ClosingMultiSelect'
-import { HolidayRangePicker } from '@renderer/components/HolidayRangePicker'
+import { TimeRangeControl } from '@renderer/components/TimeRangeControl'
 import { WorkdayFilterControl } from '@renderer/components/WorkdayFilterControl'
-
-dayjs.extend(isoWeek)
 
 interface WeeklyReportPageProps {
   onNavigateToThisWeek?: () => void
@@ -65,17 +47,7 @@ export function WeeklyReportPage({
 
   const { data: activityData, isFetching, isLoading, refetch, error } = useWeeklyActivity(timeRange)
 
-  const timeRangeOptions = [
-    { label: t('filterBar.thisWeek', { defaultValue: '本周' }), value: 'thisWeek' },
-    { label: t('filterBar.lastWeek', { defaultValue: '上周' }), value: 'lastWeek' },
-    { label: t('filterBar.lastMonth', { defaultValue: '上个月' }), value: 'lastMonth' },
-    { label: t('filterBar.custom', { defaultValue: '自定义' }), value: 'custom' }
-  ]
-
-  const customRangeValue: [Dayjs, Dayjs] | null =
-    timeRange.preset === 'custom' && timeRange.customStart && timeRange.customEnd
-      ? [dayjs(timeRange.customStart), dayjs(timeRange.customEnd)]
-      : null
+  const reportTimeRange = activityData?.timeRange ?? resolveTimeRange(timeRange)
 
   const availableAuthors = useMemo(
     () => collectAuthors(activityData?.allCommits ?? []).filter((author) => author.name),
@@ -132,11 +104,11 @@ export function WeeklyReportPage({
   const markdownText = useMemo(() => {
     return buildCommitsWeeklyReportMarkdown(filteredCommits, {
       title: '全仓工作周报',
-      timeRangeLabel: activityData?.timeRange.label,
+      timeRangeLabel: reportTimeRange.label,
       showRepo: true,
       holidayCalendar: holidaysReady ? holidayCalendar : undefined
     })
-  }, [filteredCommits, activityData?.timeRange.label, holidayCalendar, holidaysReady])
+  }, [filteredCommits, reportTimeRange.label, holidayCalendar, holidaysReady])
 
   const handleCopyMarkdown = async (): Promise<void> => {
     if (!markdownText.trim()) {
@@ -196,44 +168,14 @@ export function WeeklyReportPage({
           </div>
         </div>
 
-        {/* 第二行：时间筛选与全局搜索 */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <Segmented
-              value={timeRange.preset}
-              options={timeRangeOptions}
-              onChange={(val) => {
-                const preset = val as TimeRangePreset
-                if (preset === 'custom') {
-                  const end = dayjs()
-                  const start = end.startOf('day')
-                  const bounds = customDayBounds(start.toDate(), end.toDate())
-                  setTimeRange({
-                    preset: 'custom',
-                    customStart: bounds.start.toISOString(),
-                    customEnd: bounds.end.toISOString()
-                  })
-                } else {
-                  setTimeRange({ preset })
-                }
-              }}
-            />
-
-            {timeRange.preset === 'custom' && (
-              <HolidayRangePicker
-                value={customRangeValue}
-                calendar={holidayCalendar}
-                onChange={(start, end) => {
-                  const bounds = customDayBounds(start.toDate(), end.toDate())
-                  setTimeRange({
-                    preset: 'custom',
-                    customStart: bounds.start.toISOString(),
-                    customEnd: bounds.end.toISOString()
-                  })
-                }}
-              />
-            )}
-          </div>
+        {/* 时间筛选与提交筛选分行排列 */}
+        <div className="flex flex-col gap-3">
+          <TimeRangeControl
+            state={timeRange}
+            range={reportTimeRange}
+            calendar={holidayCalendar}
+            onChange={setTimeRange}
+          />
 
           <div className="flex flex-wrap items-center gap-3">
             <WorkdayFilterControl
@@ -244,7 +186,7 @@ export function WeeklyReportPage({
             <ClosingMultiSelect
               allowClear
               maxTagCount="responsive"
-              className="min-w-36 max-w-56"
+              className="w-48 max-w-full"
               placeholder={t('filterBar.filterAuthors', { defaultValue: '全部作者' })}
               value={effectiveSelectedAuthors}
               options={authorOptions}
@@ -346,7 +288,7 @@ export function WeeklyReportPage({
                           <MarkdownReportPreview
                             markdown={buildCommitsWeeklyReportMarkdown(filteredCommits, {
                               title: '全仓工作周报',
-                              timeRangeLabel: activityData?.timeRange.label,
+                              timeRangeLabel: reportTimeRange.label,
                               showRepo: true,
                               linkCommits: true,
                               holidayCalendar: holidaysReady ? holidayCalendar : undefined
